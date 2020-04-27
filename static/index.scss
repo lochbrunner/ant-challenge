@@ -1,0 +1,31 @@
+body {
+    margin: 0;
+}
+
+header {
+    text-align: center;
+    h1{
+        // font: 6px/1.5 sans-serif;
+        // font-weight: normal;
+        font-size: 70px;
+        font-weight: 100;
+        color: #666;
+        font-family: 'Josefin Sans', sans-serif;
+    }
+}
+
+.todomvc-wrapper{
+    // background-color: #f33;
+}
+
+footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    background: #f2f2f2;
+    border-top: solid 1px #e4e4e4;
+    font-family: arial,sans-serif;
+    color: #444;
+    font-size: 13px;
+}
