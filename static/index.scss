@@ -14,6 +14,17 @@ header {
     }
 }
 
+section {
+    p {
+        width: 600px;
+        margin: auto;
+        margin-bottom: 10px;
+    }
+    .scene {
+        width: 100%;
+    }
+}
+
 .todomvc-wrapper{
     // background-color: #f33;
 }
@@ -28,4 +39,7 @@ footer {
     font-family: arial,sans-serif;
     color: #444;
     font-size: 13px;
+    p {
+        margin: 8px 0px;
+    }
 }

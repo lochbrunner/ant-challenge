@@ -1,10 +1,9 @@
 use log::*;
 use serde_derive::{Deserialize, Serialize};
-use strum::IntoEnumIterator;
-use strum_macros::{EnumIter, ToString};
-use yew::format::Json;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
+
+use crate::scene::Scene;
 
 const KEY: &str = "ant-challenge.self";
 
@@ -17,12 +16,12 @@ pub struct App {
 #[derive(Serialize, Deserialize)]
 pub struct State {}
 
-#[derive(Serialize, Deserialize)]
-struct Entry {
-    description: String,
-    completed: bool,
-    editing: bool,
-}
+// #[derive(Serialize, Deserialize)]
+// struct Entry {
+//     description: String,
+//     completed: bool,
+//     editing: bool,
+// }
 
 pub enum Msg {
     // Add,
@@ -118,7 +117,7 @@ impl Component for App {
                 </header>
                 <section class="todoapp">
                     <section class="main">
-                        <p>{" Lorem ipsum "}</p>
+                        <Scene/>
                     </section>
                 </section>
                 <footer>
