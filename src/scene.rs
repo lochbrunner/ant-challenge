@@ -10,17 +10,48 @@ use crate::camera::Camera;
 use crate::mesh::simple_mesh::SimpleMesh;
 
 #[derive(Debug)]
+struct Vector2 {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl Vector2 {
+    pub fn from_event(event: MouseEvent) -> Vector2 {
+        Vector2 {
+            x: event.screen_x(),
+            y: event.screen_y(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Msg {
     Render(f64),
-    MouseDown,
+    MouseDown(Vector2),
     MouseUp,
-    MouseLeave,
-    MouseMove,
+    MouseLeave(Vector2),
+    MouseMove(Vector2),
+}
+
+impl Msg {
+    pub fn mouse_up(event: MouseEvent) -> Msg {
+        Msg::MouseDown(Vector2::from_event(event))
+    }
+    pub fn mouse_leave(event: MouseEvent) -> Msg {
+        Msg::MouseLeave(Vector2::from_event(event))
+    }
+    pub fn mouse_move(event: MouseEvent) -> Msg {
+        Msg::MouseMove(Vector2::from_event(event))
+    }
 }
 
 pub struct Resolution {
     width: i32,
     height: i32,
+}
+
+pub struct MouseAction {
+    last_pos: Option<Vector2>,
 }
 
 pub struct Scene {
@@ -32,6 +63,7 @@ pub struct Scene {
     cube: Option<SimpleMesh>,
     resolution: Option<Resolution>,
     camera: Camera,
+    mouse_action: MouseAction,
 }
 
 impl Component for Scene {
@@ -48,6 +80,7 @@ impl Component for Scene {
             cube: None,
             resolution: None,
             camera: Camera::new(),
+            mouse_action: MouseAction { last_pos: None },
         }
     }
 
@@ -71,9 +104,7 @@ impl Component for Scene {
         });
         self.canvas = Some(canvas);
 
-        // let canvas = self.canvas.as_ref().unwrap();
-
-        self.cube = Some(SimpleMesh::Cube(&gl));
+        self.cube = Some(SimpleMesh::cube(&gl));
         self.gl = Some(gl);
 
         // In a more complex use-case, there will be additional WebGL initialization that should be
@@ -109,10 +140,33 @@ impl Component for Scene {
                 // case. This also allows for updating other UI elements that may be rendered in
                 // the DOM like a framerate counter, or other overlaid textual elements.
                 self.render_gl(timestamp);
+                false
             }
-            other => log_1(&format!("{:?}", other).into()),
+            Msg::MouseMove(new_pos) => {
+                if let Some(last_pos) = &self.mouse_action.last_pos {
+                    let delta_x = new_pos.x - last_pos.x;
+                    let delta_y = new_pos.y - last_pos.y;
+                    self.camera.orbit_left_right(-delta_x as f32 / 100.0);
+                    self.camera.orbit_up_down(delta_y as f32 / 100.0);
+                    self.mouse_action.last_pos = Some(new_pos);
+                    true
+                } else {
+                    false
+                }
+            }
+            Msg::MouseDown(pos) => {
+                self.mouse_action.last_pos = Some(pos);
+                false
+            }
+            Msg::MouseUp => {
+                self.mouse_action.last_pos = None;
+                false
+            }
+            other => {
+                log_1(&format!("{:?}", other).into());
+                false
+            }
         }
-        false
     }
 
     fn view(&self) -> Html {
@@ -127,7 +181,12 @@ impl Component for Scene {
         //     }
         // }
         html! {
-            <canvas onclick=self.link.callback(|_| Msg::MouseDown) class="scene" ref={self.node_ref.clone()} />
+            <canvas
+            onmousedown=self.link.callback(Msg::mouse_up)
+            onmouseup=self.link.callback(|_| Msg::MouseUp)
+            onmousemove=self.link.callback(Msg::mouse_move)
+            onmouseleave=self.link.callback(Msg::mouse_leave)
+            class="scene" ref={self.node_ref.clone()} />
         }
     }
 
