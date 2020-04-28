@@ -38,7 +38,7 @@ fn print_program_error(gl: &GL, program: &WebGlProgram) {
 }
 
 impl SimpleMesh {
-    pub fn Cube(gl: &GL) -> SimpleMesh {
+    pub fn cube(gl: &GL) -> SimpleMesh {
         // Shader
         let vert_code = include_str!("./simple.vert");
         let frag_code = include_str!("./simple.frag");
@@ -71,8 +71,10 @@ impl SimpleMesh {
 
         // Indices
         let indices: Vec<u16> = vec![
-            // 0, 1, 2, 2, 3,0, // up
-            // 4, 6, 5, 5, 7, 4, // down
+            0, 2, 6, 6, 4, 0, // front
+            1, 3, 7, 7, 5, 1, // front
+            0, 1, 3, 3, 2, 0, // left
+            4, 5, 7, 7, 6, 4, // right
             0, 4, 5, 5, 1, 0, // up
             2, 7, 6, 7, 2, 3, // down
         ];
