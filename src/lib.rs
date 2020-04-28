@@ -1,7 +1,11 @@
 #![recursion_limit = "512"]
 
 mod app;
+mod camera;
+mod mesh;
 mod scene;
+mod shader;
+// mod texture;
 
 use wasm_bindgen::prelude::*;
 

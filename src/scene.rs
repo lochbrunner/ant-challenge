@@ -1,12 +1,26 @@
 use wasm_bindgen::JsCast;
+use web_sys::console::*;
 use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
 use yew::prelude::*;
 use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 
+use crate::camera::Camera;
+use crate::mesh::simple_mesh::SimpleMesh;
+
+#[derive(Debug)]
 pub enum Msg {
     Render(f64),
+    MouseDown,
+    MouseUp,
+    MouseLeave,
+    MouseMove,
+}
+
+pub struct Resolution {
+    width: i32,
+    height: i32,
 }
 
 pub struct Scene {
@@ -15,6 +29,9 @@ pub struct Scene {
     link: ComponentLink<Self>,
     node_ref: NodeRef,
     render_loop: Option<Box<dyn Task>>,
+    cube: Option<SimpleMesh>,
+    resolution: Option<Resolution>,
+    camera: Camera,
 }
 
 impl Component for Scene {
@@ -28,6 +45,9 @@ impl Component for Scene {
             link,
             node_ref: NodeRef::default(),
             render_loop: None,
+            cube: None,
+            resolution: None,
+            camera: Camera::new(),
         }
     }
 
@@ -45,7 +65,15 @@ impl Component for Scene {
             .dyn_into()
             .unwrap();
 
+        self.resolution = Some(Resolution {
+            width: canvas.client_width(),
+            height: canvas.client_height(),
+        });
         self.canvas = Some(canvas);
+
+        // let canvas = self.canvas.as_ref().unwrap();
+
+        self.cube = Some(SimpleMesh::Cube(&gl));
         self.gl = Some(gl);
 
         // In a more complex use-case, there will be additional WebGL initialization that should be
@@ -53,6 +81,15 @@ impl Component for Scene {
         // culling etc.
 
         if first_render {
+            let gl = self.gl.as_ref().unwrap();
+            log_1(
+                &format!(
+                    "rendering buffer: {}x{}",
+                    gl.drawing_buffer_width(),
+                    gl.drawing_buffer_height()
+                )
+                .into(),
+            );
             // The callback to request animation frame is passed a time value which can be used for
             // rendering motion independent of the framerate which may vary.
             let render_frame = self.link.callback(Msg::Render);
@@ -73,13 +110,24 @@ impl Component for Scene {
                 // the DOM like a framerate counter, or other overlaid textual elements.
                 self.render_gl(timestamp);
             }
+            other => log_1(&format!("{:?}", other).into()),
         }
         false
     }
 
     fn view(&self) -> Html {
+        // if let Some(res) = &self.resolution {
+        //     let width = format!("{}px", res.width);
+        //     let height = format!("{}px", res.height);
+        //     html! {
+        //         <canvas width={width} height={height} class="scene" ref={self.node_ref.clone()} />
+        //     }
+        // } else {
+        //     html! {
+        //     }
+        // }
         html! {
-            <canvas class="scene" ref={self.node_ref.clone()} />
+            <canvas onclick=self.link.callback(|_| Msg::MouseDown) class="scene" ref={self.node_ref.clone()} />
         }
     }
 
@@ -88,48 +136,79 @@ impl Component for Scene {
     }
 }
 
+fn render_background(gl: &GL, timestamp: f64) {
+    let vert_code = include_str!("./basic.vert");
+    let frag_code = include_str!("./basic.frag");
+
+    // This list of vertices will draw two triangles to cover the entire canvas.
+    let vertices: Vec<f32> = vec![
+        -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
+    ];
+    let vertex_buffer = gl.create_buffer().unwrap();
+    let verts = js_sys::Float32Array::from(vertices.as_slice());
+
+    gl.bind_buffer(GL::ARRAY_BUFFER, Some(&vertex_buffer));
+    gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &verts, GL::STATIC_DRAW);
+
+    let vert_shader = gl.create_shader(GL::VERTEX_SHADER).unwrap();
+    gl.shader_source(&vert_shader, &vert_code);
+    gl.compile_shader(&vert_shader);
+
+    let frag_shader = gl.create_shader(GL::FRAGMENT_SHADER).unwrap();
+    gl.shader_source(&frag_shader, &frag_code);
+    gl.compile_shader(&frag_shader);
+
+    let shader_program = gl.create_program().unwrap();
+    gl.attach_shader(&shader_program, &vert_shader);
+    gl.attach_shader(&shader_program, &frag_shader);
+    gl.link_program(&shader_program);
+
+    gl.use_program(Some(&shader_program));
+
+    // Attach the position vector as an attribute for the GL context.
+    let position = gl.get_attrib_location(&shader_program, "a_position") as u32;
+    gl.vertex_attrib_pointer_with_i32(position, 2, GL::FLOAT, false, 0, 0);
+    gl.enable_vertex_attrib_array(position);
+
+    // Attach the time as a uniform for the GL context.
+    let time = gl.get_uniform_location(&shader_program, "u_time");
+    gl.uniform1f(time.as_ref(), timestamp as f32);
+
+    gl.draw_arrays(GL::TRIANGLES, 0, 6);
+}
 impl Scene {
+    fn resize(&mut self) {
+        let canvas = self.canvas.as_ref().unwrap();
+        let c_width = canvas.client_width() as u32;
+        let c_height = canvas.client_height() as u32;
+        let b_width = canvas.width();
+        let b_height = canvas.height();
+        if c_width != b_width || c_height != b_height {
+            canvas.set_width(c_width);
+            canvas.set_height(c_height);
+
+            let gl = self.gl.as_ref().unwrap();
+            gl.viewport(0, 0, c_width as i32, c_height as i32);
+            log_1(
+                &format!(
+                    "client_height: {}x{} -> {}x{}",
+                    b_width, b_height, c_width, c_height
+                )
+                .into(),
+            );
+        }
+    }
+
     fn render_gl(&mut self, timestamp: f64) {
+        self.resize();
         let gl = self.gl.as_ref().expect("GL Context not initialized!");
+        gl.clear(GL::COLOR_BUFFER_BIT);
+        render_background(gl, timestamp);
+        if let Some(cube) = &self.cube {
+            cube.render(&gl, &self.camera);
+        }
 
-        let vert_code = include_str!("./basic.vert");
-        let frag_code = include_str!("./basic.frag");
-
-        // This list of vertices will draw two triangles to cover the entire canvas.
-        let vertices: Vec<f32> = vec![
-            -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
-        ];
-        let vertex_buffer = gl.create_buffer().unwrap();
-        let verts = js_sys::Float32Array::from(vertices.as_slice());
-
-        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&vertex_buffer));
-        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &verts, GL::STATIC_DRAW);
-
-        let vert_shader = gl.create_shader(GL::VERTEX_SHADER).unwrap();
-        gl.shader_source(&vert_shader, &vert_code);
-        gl.compile_shader(&vert_shader);
-
-        let frag_shader = gl.create_shader(GL::FRAGMENT_SHADER).unwrap();
-        gl.shader_source(&frag_shader, &frag_code);
-        gl.compile_shader(&frag_shader);
-
-        let shader_program = gl.create_program().unwrap();
-        gl.attach_shader(&shader_program, &vert_shader);
-        gl.attach_shader(&shader_program, &frag_shader);
-        gl.link_program(&shader_program);
-
-        gl.use_program(Some(&shader_program));
-
-        // Attach the position vector as an attribute for the GL context.
-        let position = gl.get_attrib_location(&shader_program, "a_position") as u32;
-        gl.vertex_attrib_pointer_with_i32(position, 2, GL::FLOAT, false, 0, 0);
-        gl.enable_vertex_attrib_array(position);
-
-        // Attach the time as a uniform for the GL context.
-        let time = gl.get_uniform_location(&shader_program, "u_time");
-        gl.uniform1f(time.as_ref(), timestamp as f32);
-
-        gl.draw_arrays(GL::TRIANGLES, 0, 6);
+        gl.clear_color(0., 0.0, 0.0, 1.0);
 
         let render_frame = self.link.callback(Msg::Render);
         let handle = RenderService::new().request_animation_frame(render_frame);
