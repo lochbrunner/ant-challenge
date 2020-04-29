@@ -24,7 +24,7 @@ impl Vector2 {
     }
 }
 #[derive(Debug)]
-enum MouseButton {
+pub enum MouseButton {
     Left,
     Right,
     Middle,
@@ -277,13 +277,13 @@ impl Scene {
 
             let gl = self.gl.as_ref().unwrap();
             gl.viewport(0, 0, c_width as i32, c_height as i32);
-            log_1(
-                &format!(
-                    "client_height: {}x{} -> {}x{}",
-                    b_width, b_height, c_width, c_height
-                )
-                .into(),
-            );
+            // log_1(
+            //     &format!(
+            //         "client_height: {}x{} -> {}x{}",
+            //         b_width, b_height, c_width, c_height
+            //     )
+            //     .into(),
+            // );
         }
     }
 
