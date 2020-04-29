@@ -135,6 +135,7 @@ impl SimpleMesh {
             synchronize_buffers(&vertex_indices, &vertices, &normal_indices, &normals);
 
         log(&format!("Normals: {:?}", normals));
+        log(&format!("Vertices: {:?}", vertices));
 
         let vertices = js_sys::Float32Array::from(vertices.as_slice());
         let vertex_buffer = gl.create_buffer().unwrap();
@@ -167,7 +168,21 @@ impl SimpleMesh {
         // Bind uniform values
         let projection = gl.get_uniform_location(&self.shader, "projection");
         let view = gl.get_uniform_location(&self.shader, "view");
+        let ambient_loc = gl.get_uniform_location(&self.shader, "ambient");
+        let point_light_loc = gl.get_uniform_location(&self.shader, "point_light");
+        let point_light_dir_loc = gl.get_uniform_location(&self.shader, "point_light_dir");
+        let camera_pos_loc = gl.get_uniform_location(&self.shader, "camera_pos");
 
+        let ambient = [0.24725, 0.1995, 0.0745];
+        let point_light = [1.0, 1.0, 1.0];
+        let point_light_dir = [-1.0, -1.0, 0.5];
+        let camera_pos = camera.get_eye_pos();
+        let camera_pos = [camera_pos.x, camera_pos.y, camera_pos.z];
+
+        gl.uniform3fv_with_f32_array(camera_pos_loc.as_ref(), &camera_pos);
+        gl.uniform3fv_with_f32_array(point_light_dir_loc.as_ref(), &point_light_dir);
+        gl.uniform3fv_with_f32_array(point_light_loc.as_ref(), &point_light);
+        gl.uniform3fv_with_f32_array(ambient_loc.as_ref(), &ambient);
         gl.uniform_matrix4fv_with_f32_array(view.as_ref(), false, &camera.view());
         gl.uniform_matrix4fv_with_f32_array(projection.as_ref(), false, &camera.projection());
 
