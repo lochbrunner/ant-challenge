@@ -1,14 +1,21 @@
-use crate::camera::Camera;
-use wasm_bindgen::JsCast;
+use std::collections::HashMap;
 use web_sys::console::*;
 use web_sys::WebGlRenderingContext as GL;
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlShader};
 
+use crate::camera::Camera;
+
 pub struct SimpleMesh {
     shader: WebGlProgram,
     vertex_buffer: WebGlBuffer,
+    normal_buffer: WebGlBuffer,
     index_buffer: WebGlBuffer,
     num_indices: i32,
+}
+
+#[inline]
+fn log(text: &str) {
+    log_1(&text.into());
 }
 
 fn print_shader_error(gl: &GL, shader: &WebGlShader) {
@@ -20,7 +27,7 @@ fn print_shader_error(gl: &GL, shader: &WebGlShader) {
         let error = gl
             .get_shader_info_log(shader)
             .unwrap_or_else(|| String::from("Unknown error creating program object"));
-        log_1(&error.into());
+        log(&error);
     }
 }
 
@@ -33,8 +40,38 @@ fn print_program_error(gl: &GL, program: &WebGlProgram) {
         let error = gl
             .get_program_info_log(program)
             .unwrap_or_else(|| String::from("Unknown error creating program object"));
-        log_1(&error.into());
+        log(&error);
     }
+}
+
+// #[derive(Hash, PartialEq, Eq)]
+// struct BufferPair(f32, f32);
+
+fn synchronize_buffers(
+    indices_a: &[u16],
+    values_a: &[f32],
+    indices_b: &[u16],
+    values_b: &[f32],
+) -> (Vec<u16>, Vec<f32>, Vec<f32>) {
+    let mut common_indices = Vec::new();
+    let mut dense_values_a = Vec::new();
+    let mut dense_values_b = Vec::new();
+
+    // let mut used_value_pairs: HashMap<BufferPair, u16> = HashMap::new();
+
+    for (i, (orig_index_a, orig_index_b)) in indices_a.iter().zip(indices_b.iter()).enumerate() {
+        common_indices.push(i as u16);
+        let orig_index_a = (*orig_index_a as usize) * 3;
+        let value_a = &values_a[orig_index_a..(orig_index_a + 3)];
+        dense_values_a.extend_from_slice(value_a);
+        let orig_index_b = (*orig_index_b as usize) * 3;
+        let value_b = &values_b[orig_index_b..(orig_index_b + 3)];
+        dense_values_b.extend_from_slice(value_b);
+        // TODO: Optimize use common indices
+        // used_value_pairs.insert(BufferPair(value_a, value_b), i as u16);
+    }
+
+    (common_indices, dense_values_a, dense_values_b)
 }
 
 impl SimpleMesh {
@@ -64,34 +101,62 @@ impl SimpleMesh {
         let vertices: Vec<f32> = vec![
             x, y, z, x, y, -z, x, -y, z, x, -y, -z, -x, y, z, -x, y, -z, -x, -y, z, -x, -y, -z,
         ];
-        let vertices = js_sys::Float32Array::from(vertices.as_slice());
-        let vertex_buffer = gl.create_buffer().unwrap();
-        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&vertex_buffer));
-        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &vertices, GL::STATIC_DRAW);
+
+        // Normals
+        let normals: Vec<f32> = vec![
+            0., 0., 1., // front
+            0., 0., -1., // back
+            1., 0., 0., // left
+            -1., 0., 0., // right
+            0., 1., 0., // up
+            0., -1., 0., // down
+        ];
+        let normal_indices: Vec<u16> = vec![
+            0, 0, 0, 0, 0, 0, // front
+            1, 1, 1, 1, 1, 1, // back
+            2, 2, 2, 2, 2, 2, // left
+            3, 3, 3, 3, 3, 3, // right
+            4, 4, 4, 4, 4, 4, // up
+            5, 5, 5, 5, 5, 5, // down
+        ];
 
         // Indices
-        let indices: Vec<u16> = vec![
+        let vertex_indices: Vec<u16> = vec![
             0, 2, 6, 6, 4, 0, // front
-            1, 3, 7, 7, 5, 1, // front
+            1, 3, 7, 7, 5, 1, // back
             0, 1, 3, 3, 2, 0, // left
             4, 5, 7, 7, 6, 4, // right
             0, 4, 5, 5, 1, 0, // up
             2, 7, 6, 7, 2, 3, // down
         ];
-        // let indices: Vec<u16> = vec![
-        //     0, 2, 1, 2, 0, 3, // up
-        // ];
+
+        // Synchronize
+        let (indices, vertices, normals) =
+            synchronize_buffers(&vertex_indices, &vertices, &normal_indices, &normals);
+
+        log(&format!("Normals: {:?}", normals));
+
+        let vertices = js_sys::Float32Array::from(vertices.as_slice());
+        let vertex_buffer = gl.create_buffer().unwrap();
+        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&vertex_buffer));
+        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &vertices, GL::STATIC_DRAW);
+
+        let normals = js_sys::Float32Array::from(normals.as_slice());
+        let normal_buffer = gl.create_buffer().unwrap();
+        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&normal_buffer));
+        gl.buffer_data_with_array_buffer_view(GL::ARRAY_BUFFER, &normals, GL::STATIC_DRAW);
+
         let num_indices = indices.len() as i32;
         let indices = js_sys::Uint16Array::from(indices.as_slice());
 
         let index_buffer = gl.create_buffer().unwrap();
-
         gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
         gl.buffer_data_with_array_buffer_view(GL::ELEMENT_ARRAY_BUFFER, &indices, GL::STATIC_DRAW);
 
         SimpleMesh {
             shader,
             vertex_buffer,
+            normal_buffer,
             index_buffer,
             num_indices,
         }
@@ -108,10 +173,18 @@ impl SimpleMesh {
 
         // Vertices
         let position = gl.get_attrib_location(&self.shader, "position") as u32;
+        gl.enable_vertex_attrib_array(position as u32);
         gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.vertex_buffer));
         gl.vertex_attrib_pointer_with_i32(position, 3, GL::FLOAT, false, 0, 0);
-        gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
 
+        // Normals
+        let normal = gl.get_attrib_location(&self.shader, "normal") as u32;
+        gl.enable_vertex_attrib_array(normal as u32);
+        gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.normal_buffer));
+        gl.vertex_attrib_pointer_with_i32(normal, 3, GL::FLOAT, false, 0, 0);
+
+        // Indices
+        gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&self.index_buffer));
         gl.draw_elements_with_i32(GL::TRIANGLES, self.num_indices, GL::UNSIGNED_SHORT, 0);
     }
 }

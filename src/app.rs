@@ -25,16 +25,15 @@ pub struct State {}
 
 pub enum Msg {
     // Add,
-    // Edit(usize),
-    // Update(String),
-    // UpdateEdit(String),
-    // Remove(usize),
-    // SetFilter(Filter),
-    // ToggleAll,
-    // ToggleEdit(usize),
-    // Toggle(usize),
-    // ClearCompleted,
-    Nope,
+// Edit(usize),
+// Update(String),
+// UpdateEdit(String),
+// Remove(usize),
+// SetFilter(Filter),
+// ToggleAll,
+// ToggleEdit(usize),
+// Toggle(usize),
+// ClearCompleted,
 }
 
 impl Component for App {

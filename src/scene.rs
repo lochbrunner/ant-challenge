@@ -10,7 +10,7 @@ use crate::camera::Camera;
 use crate::mesh::simple_mesh::SimpleMesh;
 
 #[derive(Debug)]
-struct Vector2 {
+pub struct Vector2 {
     pub x: i32,
     pub y: i32,
 }
@@ -29,16 +29,13 @@ pub enum Msg {
     Render(f64),
     MouseDown(Vector2),
     MouseUp,
-    MouseLeave(Vector2),
+    MouseLeave,
     MouseMove(Vector2),
 }
 
 impl Msg {
     pub fn mouse_up(event: MouseEvent) -> Msg {
         Msg::MouseDown(Vector2::from_event(event))
-    }
-    pub fn mouse_leave(event: MouseEvent) -> Msg {
-        Msg::MouseLeave(Vector2::from_event(event))
     }
     pub fn mouse_move(event: MouseEvent) -> Msg {
         Msg::MouseMove(Vector2::from_event(event))
@@ -97,6 +94,7 @@ impl Component for Scene {
             .unwrap()
             .dyn_into()
             .unwrap();
+        gl.enable(GL::DEPTH_TEST);
 
         self.resolution = Some(Resolution {
             width: canvas.client_width(),
@@ -149,7 +147,7 @@ impl Component for Scene {
                     self.camera.orbit_left_right(-delta_x as f32 / 100.0);
                     self.camera.orbit_up_down(delta_y as f32 / 100.0);
                     self.mouse_action.last_pos = Some(new_pos);
-                    true
+                    false
                 } else {
                     false
                 }
@@ -158,12 +156,8 @@ impl Component for Scene {
                 self.mouse_action.last_pos = Some(pos);
                 false
             }
-            Msg::MouseUp => {
+            Msg::MouseUp | Msg::MouseLeave => {
                 self.mouse_action.last_pos = None;
-                false
-            }
-            other => {
-                log_1(&format!("{:?}", other).into());
                 false
             }
         }
@@ -185,7 +179,7 @@ impl Component for Scene {
             onmousedown=self.link.callback(Msg::mouse_up)
             onmouseup=self.link.callback(|_| Msg::MouseUp)
             onmousemove=self.link.callback(Msg::mouse_move)
-            onmouseleave=self.link.callback(Msg::mouse_leave)
+            onmouseleave=self.link.callback(|_|Msg::MouseLeave)
             class="scene" ref={self.node_ref.clone()} />
         }
     }
@@ -262,7 +256,9 @@ impl Scene {
         self.resize();
         let gl = self.gl.as_ref().expect("GL Context not initialized!");
         gl.clear(GL::COLOR_BUFFER_BIT);
+        gl.disable(GL::DEPTH_TEST);
         render_background(gl, timestamp);
+        gl.enable(GL::DEPTH_TEST);
         if let Some(cube) = &self.cube {
             cube.render(&gl, &self.camera);
         }
