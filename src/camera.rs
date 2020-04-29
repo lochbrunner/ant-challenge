@@ -6,6 +6,7 @@ pub struct Camera {
     left_right_radians: f32,
     up_down_radians: f32,
     orbit_radius: f32,
+    target: Point3<f32>,
 }
 
 impl Camera {
@@ -17,15 +18,14 @@ impl Camera {
             left_right_radians: 45.0f32.to_radians(),
             up_down_radians: 80.0f32.to_radians(),
             orbit_radius: 6.,
+            target: Point3::new(0.0, 0.0, 0.0),
         }
     }
 
     pub fn view(&self) -> [f32; 16] {
         let eye = self.get_eye_pos();
 
-        let target = Point3::new(0.0, 0.0, 0.0);
-
-        let view = Isometry3::look_at_rh(&eye, &target, &Vector3::y());
+        let view = Isometry3::look_at_rh(&eye, &self.target, &Vector3::y());
 
         let view = view.to_homogeneous();
 
@@ -39,9 +39,7 @@ impl Camera {
         let mut eye = self.get_eye_pos();
         eye.y = -1.0 * eye.y;
 
-        let target = Point3::new(0.0, 0.0, 0.0);
-
-        let view = Isometry3::look_at_rh(&eye, &target, &Vector3::y());
+        let view = Isometry3::look_at_rh(&eye, &self.target, &Vector3::y());
 
         let view = view.to_homogeneous();
 
@@ -55,9 +53,9 @@ impl Camera {
         let yaw = self.left_right_radians;
         let pitch = self.up_down_radians;
 
-        let eye_x = self.orbit_radius * yaw.sin() * pitch.cos();
-        let eye_y = self.orbit_radius * pitch.sin();
-        let eye_z = self.orbit_radius * yaw.cos() * pitch.cos();
+        let eye_x = self.orbit_radius * yaw.sin() * pitch.cos() + self.target.x;
+        let eye_y = self.orbit_radius * pitch.sin() + self.target.y;
+        let eye_z = self.orbit_radius * yaw.cos() * pitch.cos() + self.target.z;
 
         Point3::new(eye_x, eye_y, eye_z)
     }
@@ -88,13 +86,27 @@ impl Camera {
         }
     }
 
-    pub fn zoom(&mut self, zoom: f32) {
-        self.orbit_radius += zoom;
+    pub fn move_left_right(&mut self, delta: f32) {
+        let yaw = self.left_right_radians;
+        self.target.x += yaw.cos() * delta;
+        self.target.z += -yaw.sin() * delta;
+    }
+    pub fn move_up_down(&mut self, delta: f32) {
+        let pitch = self.up_down_radians;
+        let yaw = self.left_right_radians;
 
-        if self.orbit_radius > 30. {
-            self.orbit_radius = 30.;
-        } else if self.orbit_radius < 5. {
-            self.orbit_radius = 5.;
+        self.target.x += yaw.sin() * -pitch.sin() * delta;
+        self.target.y += pitch.cos() * delta;
+        self.target.z += yaw.cos() * -pitch.sin() * delta;
+    }
+
+    pub fn zoom(&mut self, delta: f32) {
+        self.orbit_radius *= (1.05 as f32).powf(delta);
+
+        if self.orbit_radius > 50. {
+            self.orbit_radius = 50.;
+        } else if self.orbit_radius < 1. {
+            self.orbit_radius = 1.;
         }
     }
 }

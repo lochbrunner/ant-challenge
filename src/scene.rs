@@ -16,10 +16,28 @@ pub struct Vector2 {
 }
 
 impl Vector2 {
-    pub fn from_event(event: MouseEvent) -> Vector2 {
+    pub fn from_event(event: &MouseEvent) -> Vector2 {
         Vector2 {
             x: event.screen_x(),
             y: event.screen_y(),
+        }
+    }
+}
+#[derive(Debug)]
+enum MouseButton {
+    Left,
+    Right,
+    Middle,
+    Invalid,
+}
+
+impl From<i16> for MouseButton {
+    fn from(orig: i16) -> MouseButton {
+        match orig {
+            0 => MouseButton::Left,
+            1 => MouseButton::Middle,
+            2 => MouseButton::Right,
+            _ => MouseButton::Invalid,
         }
     }
 }
@@ -27,18 +45,22 @@ impl Vector2 {
 #[derive(Debug)]
 pub enum Msg {
     Render(f64),
-    MouseDown(Vector2),
+    MouseDown(Vector2, MouseButton),
     MouseUp,
     MouseLeave,
     MouseMove(Vector2),
+    Zoom(f64),
 }
 
 impl Msg {
     pub fn mouse_up(event: MouseEvent) -> Msg {
-        Msg::MouseDown(Vector2::from_event(event))
+        Msg::MouseDown(
+            Vector2::from_event(&event),
+            MouseButton::from(event.button()),
+        )
     }
     pub fn mouse_move(event: MouseEvent) -> Msg {
-        Msg::MouseMove(Vector2::from_event(event))
+        Msg::MouseMove(Vector2::from_event(&event))
     }
 }
 
@@ -49,6 +71,7 @@ pub struct Resolution {
 
 pub struct MouseAction {
     last_pos: Option<Vector2>,
+    button: MouseButton,
 }
 
 pub struct Scene {
@@ -77,7 +100,10 @@ impl Component for Scene {
             cube: None,
             resolution: None,
             camera: Camera::new(),
-            mouse_action: MouseAction { last_pos: None },
+            mouse_action: MouseAction {
+                last_pos: None,
+                button: MouseButton::Left,
+            },
         }
     }
 
@@ -138,29 +164,37 @@ impl Component for Scene {
                 // case. This also allows for updating other UI elements that may be rendered in
                 // the DOM like a framerate counter, or other overlaid textual elements.
                 self.render_gl(timestamp);
-                false
             }
             Msg::MouseMove(new_pos) => {
                 if let Some(last_pos) = &self.mouse_action.last_pos {
                     let delta_x = new_pos.x - last_pos.x;
                     let delta_y = new_pos.y - last_pos.y;
-                    self.camera.orbit_left_right(-delta_x as f32 / 100.0);
-                    self.camera.orbit_up_down(delta_y as f32 / 100.0);
+                    match self.mouse_action.button {
+                        MouseButton::Left => {
+                            self.camera.orbit_left_right(-delta_x as f32 / 100.0);
+                            self.camera.orbit_up_down(delta_y as f32 / 100.0);
+                        }
+                        MouseButton::Middle => {
+                            self.camera.move_left_right(-delta_x as f32 / 100.0);
+                            self.camera.move_up_down(delta_y as f32 / 100.0);
+                        }
+                        _ => (),
+                    }
                     self.mouse_action.last_pos = Some(new_pos);
-                    false
-                } else {
-                    false
                 }
             }
-            Msg::MouseDown(pos) => {
+            Msg::MouseDown(pos, button) => {
                 self.mouse_action.last_pos = Some(pos);
-                false
+                self.mouse_action.button = button;
             }
             Msg::MouseUp | Msg::MouseLeave => {
                 self.mouse_action.last_pos = None;
-                false
+            }
+            Msg::Zoom(amount) => {
+                self.camera.zoom(amount as f32);
             }
         }
+        false
     }
 
     fn view(&self) -> Html {
@@ -180,6 +214,7 @@ impl Component for Scene {
             onmouseup=self.link.callback(|_| Msg::MouseUp)
             onmousemove=self.link.callback(Msg::mouse_move)
             onmouseleave=self.link.callback(|_|Msg::MouseLeave)
+            onmousewheel=self.link.callback(|e: WheelEvent| Msg::Zoom(e.delta_y()))
             class="scene" ref={self.node_ref.clone()} />
         }
     }
