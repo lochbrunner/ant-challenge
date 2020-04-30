@@ -1,13 +1,12 @@
 use bincode;
 use blender_mesh::{BlenderMesh, CreateSingleIndexConfig};
-use itertools::izip;
-use nalgebra::{Isometry3, Rotation3, Similarity3, Vector3};
+use nalgebra::{Similarity3, Vector3};
 use std::collections::HashMap;
-use web_sys::console::*;
 use web_sys::WebGlRenderingContext as GL;
-use web_sys::{WebGlBuffer, WebGlProgram, WebGlShader};
+use web_sys::{WebGlBuffer, WebGlProgram};
 
 use crate::camera::Camera;
+use crate::gl_utils;
 use crate::texture::Texture;
 
 pub struct Transformation {
@@ -34,82 +33,6 @@ pub struct SimpleMesh {
     texture: Texture,
 }
 
-#[inline]
-fn log(text: &str) {
-    log_1(&text.into());
-}
-
-fn print_shader_error(gl: &GL, shader: &WebGlShader) {
-    if !gl
-        .get_shader_parameter(shader, GL::COMPILE_STATUS)
-        .as_bool()
-        .unwrap_or(false)
-    {
-        let error = gl
-            .get_shader_info_log(shader)
-            .unwrap_or_else(|| String::from("Unknown error creating program object"));
-        log(&error);
-    }
-}
-
-fn print_program_error(gl: &GL, program: &WebGlProgram) {
-    if !gl
-        .get_program_parameter(program, GL::LINK_STATUS)
-        .as_bool()
-        .unwrap_or(false)
-    {
-        let error = gl
-            .get_program_info_log(program)
-            .unwrap_or_else(|| String::from("Unknown error creating program object"));
-        log(&error);
-    }
-}
-
-#[derive(Hash, PartialEq, Eq)]
-struct IndexTriplet(i16, i16, i16);
-
-fn synchronize_buffers(
-    indices_a: &[u16],
-    values_a: &[f32],
-    indices_b: &[u16],
-    values_b: &[f32],
-    indices_c: &[u16],
-    values_c: &[f32],
-) -> (Vec<u16>, Vec<f32>, Vec<f32>, Vec<f32>) {
-    let mut common_indices = Vec::new();
-    let mut dense_values_a = Vec::new();
-    let mut dense_values_b = Vec::new();
-    let mut dense_values_c = Vec::new();
-
-    let mut used_value_pairs: HashMap<IndexTriplet, u16> = HashMap::new();
-
-    for (i, (orig_index_a, orig_index_b, orig_index_c)) in
-        izip!(indices_a, indices_b, indices_c).enumerate()
-    {
-        common_indices.push(i as u16);
-        let orig_index_a = (*orig_index_a as usize) * 3;
-        let value_a = &values_a[orig_index_a..(orig_index_a + 3)];
-        dense_values_a.extend_from_slice(value_a);
-
-        let orig_index_b = (*orig_index_b as usize) * 3;
-        let value_b = &values_b[orig_index_b..(orig_index_b + 3)];
-        dense_values_b.extend_from_slice(value_b);
-
-        let orig_index_c = (*orig_index_c as usize) * 2;
-        let value_c = &values_c[orig_index_c..(orig_index_c + 2)];
-        dense_values_c.extend_from_slice(value_c);
-        // TODO: Optimize use common indices
-        // used_value_pairs.insert(BufferPair(value_a, value_b), i as u16);
-    }
-
-    (
-        common_indices,
-        dense_values_a,
-        dense_values_b,
-        dense_values_c,
-    )
-}
-
 impl SimpleMesh {
     fn create_resources(
         gl: &GL,
@@ -123,22 +46,10 @@ impl SimpleMesh {
         let vert_code = include_str!("./simple.vert");
         let frag_code = include_str!("./simple.frag");
 
-        let vert_shader = gl.create_shader(GL::VERTEX_SHADER).unwrap();
-        gl.shader_source(&vert_shader, &vert_code);
-        gl.compile_shader(&vert_shader);
-        let frag_shader = gl.create_shader(GL::FRAGMENT_SHADER).unwrap();
-        gl.shader_source(&frag_shader, &frag_code);
-        gl.compile_shader(&frag_shader);
-        let shader = gl.create_program().unwrap();
-        gl.attach_shader(&shader, &vert_shader);
-        gl.attach_shader(&shader, &frag_shader);
-        gl.link_program(&shader);
-        print_shader_error(gl, &vert_shader);
-        print_shader_error(gl, &frag_shader);
-        print_program_error(gl, &shader);
+        let shader = gl_utils::create_shader(gl, vert_code, frag_code);
 
         // Synchronize
-        // let (indices, vertices, normals, tex_coords) = synchronize_buffers(
+        // let (indices, vertices, normals, tex_coords) = gl_utils::synchronize_buffers(
         //     vertex_indices,
         //     vertices,
         //     normal_indices,
@@ -235,7 +146,7 @@ impl SimpleMesh {
         ];
 
         // Synchronize
-        let (indices, vertices, normals, tex_coords) = synchronize_buffers(
+        let (indices, vertices, normals, tex_coords) = gl_utils::synchronize_buffers(
             &vertex_indices,
             &vertices,
             &normal_indices,
@@ -254,15 +165,15 @@ impl SimpleMesh {
         )
     }
 
-    pub fn mesh(gl: &GL, texture: &str) -> SimpleMesh {
+    pub fn mesh(gl: &GL, mesh_name: &str, texture: &str) -> SimpleMesh {
         let meshes = include_bytes!("../../dist/meshes.bin");
         let mut meshes: HashMap<String, BlenderMesh> = bincode::deserialize(meshes).unwrap();
 
         // let mut attributes_sets = Vec::new();
         for (name, _) in meshes.iter() {
-            log(name);
+            gl_utils::log(name);
         }
-        let mut mesh = meshes.get_mut("Fully").unwrap();
+        let mut mesh = meshes.get_mut(mesh_name).unwrap();
 
         let attributes = mesh.combine_vertex_indices(&CreateSingleIndexConfig {
             bone_influences_per_vertex: None,
@@ -285,9 +196,7 @@ impl SimpleMesh {
 
     pub fn render(&self, gl: &GL, camera: &Camera, transformation: &Transformation) {
         // Transformation
-        let rotation = Vector3::new(-std::f32::consts::FRAC_PI_2, 0.0f32, 0.0f32);
-        let translation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
-        let model = Similarity3::new(translation, rotation, 0.5f32);
+        let model = Similarity3::new(transformation.translation, transformation.rotation, 0.5f32);
 
         gl.use_program(Some(&self.shader));
         // Bind uniform values
@@ -335,7 +244,10 @@ impl SimpleMesh {
         gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.tex_coords_buffer));
         gl.vertex_attrib_pointer_with_i32(tex_coordinate, 2, GL::FLOAT, false, 0, 0);
 
-        gl.active_texture(0);
+        gl.active_texture(GL::TEXTURE0);
+        let texture_loc = gl.get_uniform_location(&self.shader, "texture").unwrap();
+        gl.active_texture(GL::TEXTURE0);
+        gl.uniform1i(Some(&texture_loc), 0);
         gl.bind_texture(GL::TEXTURE_2D, Some(self.texture.texture.as_ref()));
 
         // Indices

@@ -2,9 +2,10 @@
 
 mod app;
 mod camera;
+mod gl_utils;
+mod ground;
 mod mesh;
 mod scene;
-// mod shader;
 mod texture;
 
 use wasm_bindgen::prelude::*;

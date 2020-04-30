@@ -9,7 +9,13 @@ use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 use nalgebra::Vector3;
 
 use crate::camera::Camera;
+use crate::ground::Ground;
 use crate::mesh::{SimpleMesh, Transformation};
+
+#[inline]
+fn log(text: &str) {
+    log_1(&text.into());
+}
 
 #[derive(Debug)]
 pub struct Vector2 {
@@ -84,6 +90,7 @@ pub struct Scene {
     render_loop: Option<Box<dyn Task>>,
     cube: Option<SimpleMesh>,
     ant: Option<SimpleMesh>,
+    ground: Option<Ground>,
     resolution: Option<Resolution>,
     camera: Camera,
     mouse_action: MouseAction,
@@ -102,6 +109,7 @@ impl Component for Scene {
             render_loop: None,
             cube: None,
             ant: None,
+            ground: None,
             resolution: None,
             camera: Camera::new(),
             mouse_action: MouseAction {
@@ -133,7 +141,8 @@ impl Component for Scene {
         self.canvas = Some(canvas);
 
         self.cube = Some(SimpleMesh::cube(&gl));
-        self.ant = Some(SimpleMesh::mesh(&gl, "./ant-texture.png"));
+        self.ant = Some(SimpleMesh::mesh(&gl, "Fully", "./ant-texture.png"));
+        self.ground = Some(Ground::new(&gl));
         self.gl = Some(gl);
 
         // In a more complex use-case, there will be additional WebGL initialization that should be
@@ -196,7 +205,14 @@ impl Component for Scene {
                 self.mouse_action.last_pos = None;
             }
             Msg::Zoom(amount) => {
-                self.camera.zoom(amount as f32);
+                // Chrome or firefox?
+                if amount.abs() >= 50.0 {
+                    // log(&format!("chrome zoom: {}", amount));
+                    self.camera.zoom(amount as f32 / 53.);
+                } else {
+                    // log(&format!("firefox zoom: {}", amount));
+                    self.camera.zoom(amount as f32 / 3.);
+                }
             }
         }
         false
@@ -313,8 +329,8 @@ impl Scene {
         // }
         if let Some(ant) = &self.ant {
             let pi_2 = std::f32::consts::FRAC_PI_2;
-            let rotation = Vector3::new(0.0f32, pi_2, 0.0f32);
-            let translation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
+            let rotation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
+            let translation = Vector3::new(0.0f32, 0.0f32, 0.8f32);
             ant.render(
                 &gl,
                 &self.camera,
@@ -323,6 +339,9 @@ impl Scene {
                     translation,
                 },
             );
+        }
+        if let Some(ground) = &self.ground {
+            ground.render(&gl, &self.camera);
         }
 
         gl.clear_color(0., 0.0, 0.0, 1.0);
