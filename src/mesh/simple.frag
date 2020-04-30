@@ -5,7 +5,7 @@ uniform vec3 point_light;
 uniform vec3 point_light_dir;
 uniform sampler2D texture;
 
-vec3 reflection_base = vec3(0.628281, 0.555802, 0.366065) * 0.4;
+vec3 reflection_base = vec3(0.628281, 0.555802, 0.366065) * 0.0;
 
 varying vec3 vNormal;
 varying vec2 tex_uv;

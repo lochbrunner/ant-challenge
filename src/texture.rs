@@ -5,7 +5,6 @@ use web_sys::HtmlImageElement;
 use web_sys::WebGlRenderingContext as GL;
 use web_sys::WebGlTexture;
 
-use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct Texture {

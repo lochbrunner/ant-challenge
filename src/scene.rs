@@ -6,8 +6,10 @@ use yew::prelude::*;
 use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 
+use nalgebra::Vector3;
+
 use crate::camera::Camera;
-use crate::mesh::simple_mesh::SimpleMesh;
+use crate::mesh::{SimpleMesh, Transformation};
 
 #[derive(Debug)]
 pub struct Vector2 {
@@ -81,6 +83,7 @@ pub struct Scene {
     node_ref: NodeRef,
     render_loop: Option<Box<dyn Task>>,
     cube: Option<SimpleMesh>,
+    ant: Option<SimpleMesh>,
     resolution: Option<Resolution>,
     camera: Camera,
     mouse_action: MouseAction,
@@ -98,6 +101,7 @@ impl Component for Scene {
             node_ref: NodeRef::default(),
             render_loop: None,
             cube: None,
+            ant: None,
             resolution: None,
             camera: Camera::new(),
             mouse_action: MouseAction {
@@ -129,6 +133,7 @@ impl Component for Scene {
         self.canvas = Some(canvas);
 
         self.cube = Some(SimpleMesh::cube(&gl));
+        self.ant = Some(SimpleMesh::mesh(&gl, "./ant-texture.png"));
         self.gl = Some(gl);
 
         // In a more complex use-case, there will be additional WebGL initialization that should be
@@ -175,8 +180,8 @@ impl Component for Scene {
                             self.camera.orbit_up_down(delta_y as f32 / 100.0);
                         }
                         MouseButton::Middle => {
-                            self.camera.move_left_right(-delta_x as f32 / 100.0);
-                            self.camera.move_up_down(delta_y as f32 / 100.0);
+                            self.camera.move_left_right(-delta_x as f32 / 600.0);
+                            self.camera.move_up_down(delta_y as f32 / 600.0);
                         }
                         _ => (),
                     }
@@ -294,8 +299,30 @@ impl Scene {
         gl.disable(GL::DEPTH_TEST);
         render_background(gl, timestamp);
         gl.enable(GL::DEPTH_TEST);
-        if let Some(cube) = &self.cube {
-            cube.render(&gl, &self.camera);
+        // if let Some(cube) = &self.cube {
+        //     let rotation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
+        //     let translation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
+        //     cube.render(
+        //         &gl,
+        //         &self.camera,
+        //         &Transformation {
+        //             rotation,
+        //             translation,
+        //         },
+        //     );
+        // }
+        if let Some(ant) = &self.ant {
+            let pi_2 = std::f32::consts::FRAC_PI_2;
+            let rotation = Vector3::new(0.0f32, pi_2, 0.0f32);
+            let translation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
+            ant.render(
+                &gl,
+                &self.camera,
+                &Transformation {
+                    rotation,
+                    translation,
+                },
+            );
         }
 
         gl.clear_color(0., 0.0, 0.0, 1.0);

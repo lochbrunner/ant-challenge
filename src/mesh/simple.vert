@@ -5,6 +5,7 @@ attribute vec3 normal;
 attribute vec2 tex_coordinate;
 
 uniform mat4 view;
+uniform mat4 model;
 uniform mat4 projection;
 uniform vec3 camera_pos;
 
@@ -15,7 +16,7 @@ varying vec3 relative_camera_pos;
 varying vec2 tex_uv;
 
 void main() {
-  worldPosition = vec4(position, 1.0);
+  worldPosition = model * vec4(position, 1.0);
   gl_Position = projection * view * worldPosition;
   relative_camera_pos = camera_pos - worldPosition.xyz;
   vNormal = normal;
