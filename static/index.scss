@@ -1,6 +1,8 @@
 body {
     margin: 0;
 }
+$header-size:100px;
+$footer-size:31px;
 
 header {
     text-align: center;
@@ -21,7 +23,14 @@ section {
         margin-bottom: 10px;
     }
     .scene {
+        position: absolute;
+        bottom: 31px;
+        top: 140px;
         width: 100%;
+
+        >canvas {
+            width: 100%;
+        }
         // width: 1200px;
         // height: 600px;
     }

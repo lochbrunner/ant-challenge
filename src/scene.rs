@@ -1,8 +1,9 @@
 use wasm_bindgen::JsCast;
 use web_sys::console::*;
-use web_sys::HtmlCanvasElement;
 use web_sys::WebGlRenderingContext as GL;
+use web_sys::{HtmlCanvasElement, HtmlElement};
 use yew::prelude::*;
+use yew::services::resize::{ResizeService, ResizeTask};
 use yew::services::{RenderService, Task};
 use yew::{html, Component, ComponentLink, Html, NodeRef, ShouldRender};
 
@@ -58,6 +59,7 @@ pub enum Msg {
     MouseLeave,
     MouseMove(Vector2),
     Zoom(f64),
+    Resize,
 }
 
 impl Msg {
@@ -84,10 +86,13 @@ pub struct MouseAction {
 
 pub struct Scene {
     canvas: Option<HtmlCanvasElement>,
+    container: Option<HtmlElement>,
     gl: Option<GL>,
     link: ComponentLink<Self>,
-    node_ref: NodeRef,
+    canvas_ref: NodeRef,
+    container_ref: NodeRef,
     render_loop: Option<Box<dyn Task>>,
+    resize_service: Option<Box<ResizeTask>>,
     cube: Option<SimpleMesh>,
     ant: Option<SimpleMesh>,
     ground: Option<Ground>,
@@ -103,10 +108,13 @@ impl Component for Scene {
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         Scene {
             canvas: None,
+            container: None,
             gl: None,
             link,
-            node_ref: NodeRef::default(),
+            canvas_ref: NodeRef::default(),
+            container_ref: NodeRef::default(),
             render_loop: None,
+            resize_service: None,
             cube: None,
             ant: None,
             ground: None,
@@ -124,7 +132,9 @@ impl Component for Scene {
         // resizing the rendering area when the window or canvas element are resized, as well as
         // for making GL calls.
 
-        let canvas = self.node_ref.cast::<HtmlCanvasElement>().unwrap();
+        let canvas = self.canvas_ref.cast::<HtmlCanvasElement>().unwrap();
+        let container = self.container_ref.cast::<HtmlElement>().unwrap();
+        self.container = Some(container);
 
         let gl: GL = canvas
             .get_context("webgl")
@@ -141,7 +151,7 @@ impl Component for Scene {
         self.canvas = Some(canvas);
 
         self.cube = Some(SimpleMesh::cube(&gl));
-        self.ant = Some(SimpleMesh::mesh(&gl, "Fully", "./ant-texture.png"));
+        self.ant = Some(SimpleMesh::mesh(&gl, "Ant.Released", "./ant-texture.png"));
         self.ground = Some(Ground::new(&gl));
         self.gl = Some(gl);
 
@@ -163,10 +173,12 @@ impl Component for Scene {
             // rendering motion independent of the framerate which may vary.
             let render_frame = self.link.callback(Msg::Render);
             let handle = RenderService::new().request_animation_frame(render_frame);
+            let resize_service = ResizeService::new().register(self.link.callback(|_| Msg::Resize));
 
             // A reference to the handle must be stored, otherwise it is dropped and the render won't
             // occur.
             self.render_loop = Some(Box::new(handle));
+            self.resize_service = Some(Box::new(resize_service));
         }
     }
 
@@ -214,6 +226,7 @@ impl Component for Scene {
                     self.camera.zoom(amount as f32 / 3.);
                 }
             }
+            Msg::Resize => (),
         }
         false
     }
@@ -223,26 +236,34 @@ impl Component for Scene {
         //     let width = format!("{}px", res.width);
         //     let height = format!("{}px", res.height);
         //     html! {
-        //         <canvas width={width} height={height} class="scene" ref={self.node_ref.clone()} />
+        //         <canvas width={width} height={height} class="scene" ref={self.canvas_ref.clone()} />
         //     }
         // } else {
         //     html! {
         //     }
         // }
         html! {
+            <div class="scene" ref={self.container_ref.clone()}>
             <canvas
-            onmousedown=self.link.callback(Msg::mouse_up)
-            onmouseup=self.link.callback(|_| Msg::MouseUp)
-            onmousemove=self.link.callback(Msg::mouse_move)
-            onmouseleave=self.link.callback(|_|Msg::MouseLeave)
-            onmousewheel=self.link.callback(|e: WheelEvent| Msg::Zoom(e.delta_y()))
-            class="scene" ref={self.node_ref.clone()} />
+                onmousedown=self.link.callback(Msg::mouse_up)
+                onmouseup=self.link.callback(|_| Msg::MouseUp)
+                onmousemove=self.link.callback(Msg::mouse_move)
+                onmouseleave=self.link.callback(|_|Msg::MouseLeave)
+                onmousewheel=self.link.callback(|e: WheelEvent| Msg::Zoom(e.delta_y()))
+                ref={self.canvas_ref.clone()} />
+            </div>
         }
     }
 
     fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
+}
+
+struct AntInfo {
+    pos_x: f32,
+    pos_y: f32,
+    rot: f32,
 }
 
 fn render_background(gl: &GL, timestamp: f64) {
@@ -287,9 +308,10 @@ fn render_background(gl: &GL, timestamp: f64) {
 }
 impl Scene {
     fn resize(&mut self) {
+        let container = self.container.as_ref().unwrap();
         let canvas = self.canvas.as_ref().unwrap();
-        let c_width = canvas.client_width() as u32;
-        let c_height = canvas.client_height() as u32;
+        let c_width = container.client_width() as u32;
+        let c_height = container.client_height() as u32;
         let b_width = canvas.width();
         let b_height = canvas.height();
         if c_width != b_width || c_height != b_height {
@@ -312,33 +334,44 @@ impl Scene {
         self.resize();
         let gl = self.gl.as_ref().expect("GL Context not initialized!");
         gl.clear(GL::COLOR_BUFFER_BIT);
+        let canvas = self.canvas.as_ref().unwrap();
+        let c_width = canvas.client_width();
+        let c_height = canvas.client_height();
+        let ratio = c_width as f32 / c_height as f32;
+        // log_1(&format!("aspect ratio: {}", ratio).into());
+        self.camera.update_aspect(ratio);
+        gl.viewport(0, 0, c_width, c_height);
+
         gl.disable(GL::DEPTH_TEST);
         render_background(gl, timestamp);
         gl.enable(GL::DEPTH_TEST);
-        // if let Some(cube) = &self.cube {
-        //     let rotation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
-        //     let translation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
-        //     cube.render(
-        //         &gl,
-        //         &self.camera,
-        //         &Transformation {
-        //             rotation,
-        //             translation,
-        //         },
-        //     );
-        // }
+
+        let ants = vec![
+            AntInfo {
+                pos_x: 12.,
+                pos_y: 4.,
+                rot: 1.2,
+            },
+            AntInfo {
+                pos_x: 0.,
+                pos_y: 0.,
+                rot: 0.,
+            },
+        ];
+
         if let Some(ant) = &self.ant {
-            let pi_2 = std::f32::consts::FRAC_PI_2;
-            let rotation = Vector3::new(0.0f32, 0.0f32, 0.0f32);
-            let translation = Vector3::new(0.0f32, 0.0f32, 0.8f32);
-            ant.render(
-                &gl,
-                &self.camera,
-                &Transformation {
-                    rotation,
-                    translation,
-                },
-            );
+            for inst in ants.iter() {
+                let rotation = Vector3::new(0.0f32, 0.0f32, inst.rot);
+                let translation = Vector3::new(inst.pos_x, inst.pos_y, 0.8f32);
+                ant.render(
+                    &gl,
+                    &self.camera,
+                    &Transformation {
+                        rotation,
+                        translation,
+                    },
+                );
+            }
         }
         if let Some(ground) = &self.ground {
             ground.render(&gl, &self.camera);

@@ -22,6 +22,11 @@ impl Camera {
         }
     }
 
+    pub fn update_aspect(&mut self, ratio: f32) {
+        let fovy = PI / 3.0;
+        self.projection = Perspective3::new(ratio, fovy, 0.5, 256.0);
+    }
+
     pub fn view(&self) -> [f32; 16] {
         let eye = self.get_eye_pos();
 
