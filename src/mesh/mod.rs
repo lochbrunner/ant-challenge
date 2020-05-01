@@ -12,15 +12,7 @@ use crate::texture::Texture;
 pub struct Transformation {
     pub translation: Vector3<f32>,
     pub rotation: Vector3<f32>,
-}
-
-impl Transformation {
-    pub fn new(translation: (f32, f32, f32), rotation: (f32, f32, f32)) -> Transformation {
-        Transformation {
-            translation: Vector3::new(translation.0, translation.1, translation.2),
-            rotation: Vector3::new(rotation.0, rotation.1, rotation.2),
-        }
-    }
+    pub scale: f32,
 }
 
 pub struct SimpleMesh {
@@ -196,7 +188,11 @@ impl SimpleMesh {
 
     pub fn render(&self, gl: &GL, camera: &Camera, transformation: &Transformation) {
         // Transformation
-        let model = Similarity3::new(transformation.translation, transformation.rotation, 0.5f32);
+        let model = Similarity3::new(
+            transformation.translation,
+            transformation.rotation,
+            transformation.scale,
+        );
 
         gl.use_program(Some(&self.shader));
         // Bind uniform values
@@ -208,7 +204,7 @@ impl SimpleMesh {
         let point_light_dir_loc = gl.get_uniform_location(&self.shader, "point_light_dir");
         let camera_pos_loc = gl.get_uniform_location(&self.shader, "camera_pos");
 
-        let ambient = [0.24725, 0.1995, 0.0745];
+        let ambient = [0.4, 0.4, 0.2];
         let point_light = [1.0, 1.0, 1.0];
         let point_light_dir = [-1.0, -1.0, 0.5];
         let camera_pos = camera.get_eye_pos();

@@ -1,5 +1,10 @@
 {
   "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "Matthias Lochbrunner",
+    "email": "matthias_lochbrunner@web.de"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack --mode development",

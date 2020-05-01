@@ -95,6 +95,9 @@ pub struct Scene {
     resize_service: Option<Box<ResizeTask>>,
     cube: Option<SimpleMesh>,
     ant: Option<SimpleMesh>,
+    raspberry: Option<SimpleMesh>,
+    anthill: Option<SimpleMesh>,
+    sugar_hill: Option<SimpleMesh>,
     ground: Option<Ground>,
     resolution: Option<Resolution>,
     camera: Camera,
@@ -117,6 +120,9 @@ impl Component for Scene {
             resize_service: None,
             cube: None,
             ant: None,
+            raspberry: None,
+            anthill: None,
+            sugar_hill: None,
             ground: None,
             resolution: None,
             camera: Camera::new(),
@@ -152,6 +158,9 @@ impl Component for Scene {
 
         self.cube = Some(SimpleMesh::cube(&gl));
         self.ant = Some(SimpleMesh::mesh(&gl, "Ant.Released", "./ant-texture.png"));
+        self.raspberry = Some(SimpleMesh::mesh(&gl, "raspberry", "./raspberry_paint.png"));
+        self.anthill = Some(SimpleMesh::mesh(&gl, "anthill", "./anthill_paint.png"));
+        self.sugar_hill = Some(SimpleMesh::mesh(&gl, "sugar_hill", "./sugar_paint.png"));
         self.ground = Some(Ground::new(&gl));
         self.gl = Some(gl);
 
@@ -359,6 +368,45 @@ impl Scene {
             },
         ];
 
+        let raspberries = vec![
+            AntInfo {
+                pos_x: 3.,
+                pos_y: -3.,
+                rot: 1.2,
+            },
+            AntInfo {
+                pos_x: 4.,
+                pos_y: 0.,
+                rot: 2.,
+            },
+        ];
+
+        let anthills = vec![
+            AntInfo {
+                pos_x: -2.,
+                pos_y: 30.,
+                rot: 1.2,
+            },
+            AntInfo {
+                pos_x: -20.,
+                pos_y: -30.,
+                rot: 2.7,
+            },
+        ];
+
+        let sugar_hills = vec![
+            AntInfo {
+                pos_x: -12.,
+                pos_y: 2.3,
+                rot: 1.2,
+            },
+            AntInfo {
+                pos_x: 21.,
+                pos_y: 3.,
+                rot: 2.7,
+            },
+        ];
+
         if let Some(ant) = &self.ant {
             for inst in ants.iter() {
                 let rotation = Vector3::new(0.0f32, 0.0f32, inst.rot);
@@ -369,10 +417,59 @@ impl Scene {
                     &Transformation {
                         rotation,
                         translation,
+                        scale: 0.5,
                     },
                 );
             }
         }
+        if let Some(raspberry) = &self.raspberry {
+            for inst in raspberries.iter() {
+                let rotation = Vector3::new(0.0f32, 0.0f32, inst.rot);
+                let translation = Vector3::new(inst.pos_x, inst.pos_y, 0.8f32);
+                raspberry.render(
+                    &gl,
+                    &self.camera,
+                    &Transformation {
+                        rotation,
+                        translation,
+                        scale: 10.0,
+                    },
+                );
+            }
+        }
+
+        if let Some(anthill) = &self.anthill {
+            for inst in anthills.iter() {
+                let rotation = Vector3::new(0.0f32, 0.0f32, inst.rot);
+                let translation = Vector3::new(inst.pos_x, inst.pos_y, 0.);
+                anthill.render(
+                    &gl,
+                    &self.camera,
+                    &Transformation {
+                        rotation,
+                        translation,
+                        scale: 5.0,
+                    },
+                );
+            }
+        }
+
+        if let Some(sugar_hill) = &self.sugar_hill {
+            for inst in sugar_hills.iter() {
+                let rotation = Vector3::new(0.0f32, 0.0f32, inst.rot);
+                let translation = Vector3::new(inst.pos_x, inst.pos_y, 0.);
+                sugar_hill.render(
+                    &gl,
+                    &self.camera,
+                    &Transformation {
+                        rotation,
+                        translation,
+                        scale: 10.0,
+                    },
+                );
+            }
+        }
+
         if let Some(ground) = &self.ground {
             ground.render(&gl, &self.camera);
         }

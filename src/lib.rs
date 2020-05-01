@@ -1,5 +1,4 @@
 #![recursion_limit = "512"]
-
 mod app;
 mod camera;
 mod gl_utils;
