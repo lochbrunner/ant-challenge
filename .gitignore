@@ -1,4 +1,4 @@
-/target
+target
 **/*.rs.bk
 Cargo.lock
 bin/
@@ -7,3 +7,4 @@ dist/
 wasm-pack.log
 node_modules
 references
+netlife
