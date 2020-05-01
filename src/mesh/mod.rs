@@ -165,7 +165,7 @@ impl SimpleMesh {
         for (name, _) in meshes.iter() {
             gl_utils::log(name);
         }
-        let mut mesh = meshes.get_mut(mesh_name).unwrap();
+        let mesh = meshes.get_mut(mesh_name).unwrap();
 
         let attributes = mesh.combine_vertex_indices(&CreateSingleIndexConfig {
             bone_influences_per_vertex: None,

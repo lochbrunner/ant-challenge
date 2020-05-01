@@ -1,20 +1,20 @@
 use log::*;
-use serde_derive::{Deserialize, Serialize};
+// use serde_derive::{Deserialize, Serialize};
 use yew::prelude::*;
-use yew::services::storage::{Area, StorageService};
+// use yew::services::storage::{Area, StorageService};
 
 use crate::scene::Scene;
 
-const KEY: &str = "ant-challenge.self";
+// const KEY: &str = "ant-challenge.self";
 
 pub struct App {
-    link: ComponentLink<Self>,
-    storage: StorageService,
-    state: State,
+    // link: ComponentLink<Self>,
+// storage: StorageService,
+// state: State,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct State {}
+// #[derive(Serialize, Deserialize)]
+// pub struct State {}
 
 // #[derive(Serialize, Deserialize)]
 // struct Entry {
@@ -40,8 +40,8 @@ impl Component for App {
     type Message = Msg;
     type Properties = ();
 
-    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let storage = StorageService::new(Area::Local).unwrap();
+    fn create(_: Self::Properties, _link: ComponentLink<Self>) -> Self {
+        // let storage = StorageService::new(Area::Local).unwrap();
         // let entries = {
         //     if let Json(Ok(restored_entries)) = storage.restore(KEY) {
         //         restored_entries
@@ -49,15 +49,15 @@ impl Component for App {
         //         Vec::new()
         //     }
         // };
-        let state = State {};
+        // let state = State {};
         App {
-            link,
-            storage,
-            state,
+            // link,
+            // storage,
+            // state,
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
         // match msg {
         //     Msg::Add => {
         //         let entry = Entry {

@@ -74,11 +74,6 @@ impl Msg {
     }
 }
 
-pub struct Resolution {
-    width: i32,
-    height: i32,
-}
-
 pub struct MouseAction {
     last_pos: Option<Vector2>,
     button: MouseButton,
@@ -99,7 +94,6 @@ pub struct Scene {
     anthill: Option<SimpleMesh>,
     sugar_hill: Option<SimpleMesh>,
     ground: Option<Ground>,
-    resolution: Option<Resolution>,
     camera: Camera,
     mouse_action: MouseAction,
 }
@@ -124,7 +118,6 @@ impl Component for Scene {
             anthill: None,
             sugar_hill: None,
             ground: None,
-            resolution: None,
             camera: Camera::new(),
             mouse_action: MouseAction {
                 last_pos: None,
@@ -150,10 +143,6 @@ impl Component for Scene {
             .unwrap();
         gl.enable(GL::DEPTH_TEST);
 
-        self.resolution = Some(Resolution {
-            width: canvas.client_width(),
-            height: canvas.client_height(),
-        });
         self.canvas = Some(canvas);
 
         self.cube = Some(SimpleMesh::cube(&gl));
@@ -241,16 +230,6 @@ impl Component for Scene {
     }
 
     fn view(&self) -> Html {
-        // if let Some(res) = &self.resolution {
-        //     let width = format!("{}px", res.width);
-        //     let height = format!("{}px", res.height);
-        //     html! {
-        //         <canvas width={width} height={height} class="scene" ref={self.canvas_ref.clone()} />
-        //     }
-        // } else {
-        //     html! {
-        //     }
-        // }
         html! {
             <div class="scene" ref={self.container_ref.clone()}>
             <canvas
