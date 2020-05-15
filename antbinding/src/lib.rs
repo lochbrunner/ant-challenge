@@ -42,6 +42,30 @@ impl PyPose {
     fn get_rotation(&self) -> PyResult<f32> {
         Ok(self.inner.rotation)
     }
+
+    #[setter]
+    fn set_x(&mut self, x: f32) -> PyResult<()> {
+        unsafe {
+            Rc::get_mut_unchecked(&mut self.inner).x = x;
+        }
+        Ok(())
+    }
+
+    #[setter]
+    fn set_y(&mut self, y: f32) -> PyResult<()> {
+        unsafe {
+            Rc::get_mut_unchecked(&mut self.inner).y = y;
+        }
+        Ok(())
+    }
+
+    #[setter]
+    fn set_rotation(&mut self, rotation: f32) -> PyResult<()> {
+        unsafe {
+            Rc::get_mut_unchecked(&mut self.inner).rotation = rotation;
+        }
+        Ok(())
+    }
 }
 
 #[pyproto]
@@ -117,20 +141,244 @@ impl PyObjectProtocol for PyMap {
     }
 }
 
+#[pyclass(name=SugarHill,subclass)]
+#[derive(Clone)]
+pub struct PySugarHill {
+    pose: PyPose,
+    volume: f32,
+}
+
+#[pymethods]
+impl PySugarHill {
+    #[new]
+    fn py_new(x: Option<f32>, y: Option<f32>, rotation: Option<f32>, volume: Option<f32>) -> Self {
+        PySugarHill {
+            pose: PyPose::py_new(x, y, rotation),
+            volume: volume.unwrap_or(12.),
+        }
+    }
+
+    #[getter]
+    fn get_volume(&self) -> PyResult<f32> {
+        Ok(self.volume)
+    }
+
+    #[getter]
+    fn get_pose(&self) -> PyResult<PyPose> {
+        Ok(self.pose.clone())
+    }
+
+    #[setter]
+    fn set_volume(&mut self, volume: f32) -> PyResult<()> {
+        self.volume = volume;
+        Ok(())
+    }
+
+    #[setter]
+    fn set_pose(&mut self, pose: PyPose) -> PyResult<()> {
+        unsafe {
+            Rc::get_mut_unchecked(&mut self.pose.inner).x = pose.inner.x;
+            Rc::get_mut_unchecked(&mut self.pose.inner).y = pose.inner.y;
+            Rc::get_mut_unchecked(&mut self.pose.inner).rotation = pose.inner.rotation;
+        }
+        Ok(())
+    }
+}
+
+impl From<common::SugarHill> for PySugarHill {
+    fn from(hill: common::SugarHill) -> Self {
+        let common::SugarHill { pose, volume } = hill;
+        PySugarHill {
+            pose: PyPose::from(pose),
+            volume,
+        }
+    }
+}
+
+impl From<&PySugarHill> for common::SugarHill {
+    fn from(py_hill: &PySugarHill) -> Self {
+        common::SugarHill {
+            pose: common::Pose::from(&py_hill.pose),
+            volume: py_hill.volume,
+        }
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for PySugarHill {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", common::SugarHill::from(self)))
+    }
+}
+
+#[pyclass(name=Ant,subclass)]
+#[derive(Clone)]
+pub struct PyAnt {
+    pose: PyPose,
+    team: u8,
+}
+
+#[pymethods]
+impl PyAnt {
+    #[new]
+    fn py_new(
+        x: Option<f32>,
+        y: Option<f32>,
+        rotation: Option<f32>,
+        team: Option<common::Team>,
+    ) -> Self {
+        PyAnt {
+            pose: PyPose::py_new(x, y, rotation),
+            team: team.unwrap_or(0),
+        }
+    }
+
+    #[getter]
+    fn get_team(&self) -> PyResult<common::Team> {
+        Ok(self.team)
+    }
+
+    #[getter]
+    fn get_pose(&self) -> PyResult<PyPose> {
+        Ok(self.pose.clone())
+    }
+
+    #[setter]
+    fn set_team(&mut self, team: common::Team) -> PyResult<()> {
+        self.team = team;
+        Ok(())
+    }
+
+    #[setter]
+    fn set_pose(&mut self, pose: PyPose) -> PyResult<()> {
+        unsafe {
+            Rc::get_mut_unchecked(&mut self.pose.inner).x = pose.inner.x;
+            Rc::get_mut_unchecked(&mut self.pose.inner).y = pose.inner.y;
+            Rc::get_mut_unchecked(&mut self.pose.inner).rotation = pose.inner.rotation;
+        }
+        Ok(())
+    }
+}
+
+impl From<common::Ant> for PyAnt {
+    fn from(hill: common::Ant) -> Self {
+        let common::Ant { pose, team } = hill;
+        PyAnt {
+            pose: PyPose::from(pose),
+            team,
+        }
+    }
+}
+
+impl From<&PyAnt> for common::Ant {
+    fn from(py_hill: &PyAnt) -> Self {
+        common::Ant {
+            pose: common::Pose::from(&py_hill.pose),
+            team: py_hill.team,
+        }
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for PyAnt {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", common::Ant::from(self)))
+    }
+}
+
+#[pyclass(name=AntHill,subclass)]
+#[derive(Clone)]
+pub struct PyAntHill {
+    pose: PyPose,
+    team: u8,
+}
+
+#[pymethods]
+impl PyAntHill {
+    #[new]
+    fn py_new(
+        x: Option<f32>,
+        y: Option<f32>,
+        rotation: Option<f32>,
+        team: Option<common::Team>,
+    ) -> Self {
+        PyAntHill {
+            pose: PyPose::py_new(x, y, rotation),
+            team: team.unwrap_or(0),
+        }
+    }
+
+    #[getter]
+    fn get_team(&self) -> PyResult<common::Team> {
+        Ok(self.team)
+    }
+
+    #[getter]
+    fn get_pose(&self) -> PyResult<PyPose> {
+        Ok(self.pose.clone())
+    }
+
+    #[setter]
+    fn set_team(&mut self, team: common::Team) -> PyResult<()> {
+        self.team = team;
+        Ok(())
+    }
+
+    #[setter]
+    fn set_pose(&mut self, pose: PyPose) -> PyResult<()> {
+        unsafe {
+            Rc::get_mut_unchecked(&mut self.pose.inner).x = pose.inner.x;
+            Rc::get_mut_unchecked(&mut self.pose.inner).y = pose.inner.y;
+            Rc::get_mut_unchecked(&mut self.pose.inner).rotation = pose.inner.rotation;
+        }
+        Ok(())
+    }
+}
+
+impl From<common::AntHill> for PyAntHill {
+    fn from(hill: common::AntHill) -> Self {
+        let common::AntHill { pose, team } = hill;
+        PyAntHill {
+            pose: PyPose::from(pose),
+            team,
+        }
+    }
+}
+
+impl From<&PyAntHill> for common::AntHill {
+    fn from(py_hill: &PyAntHill) -> Self {
+        common::AntHill {
+            pose: common::Pose::from(&py_hill.pose),
+            team: py_hill.team,
+        }
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for PyAntHill {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", common::AntHill::from(self)))
+    }
+}
+
 #[pyclass(name=Frame,subclass)]
 #[derive(Clone)]
 pub struct PyFrame {
-    ants: Vec<PyPose>,
-    anthills: Vec<PyPose>,
+    ants: Vec<PyAnt>,
+    anthills: Vec<PyAntHill>,
     raspberries: Vec<PyPose>,
-    sugar_hills: Vec<PyPose>,
+    sugar_hills: Vec<PySugarHill>,
 }
 
 impl From<&PyFrame> for common::Frame {
     fn from(py_frame: &PyFrame) -> Self {
         common::Frame {
-            ants: py_frame.ants.iter().map(common::Pose::from).collect(),
-            anthills: py_frame.anthills.iter().map(common::Pose::from).collect(),
+            ants: py_frame.ants.iter().map(common::Ant::from).collect(),
+            anthills: py_frame
+                .anthills
+                .iter()
+                .map(common::AntHill::from)
+                .collect(),
             raspberries: py_frame
                 .raspberries
                 .iter()
@@ -139,7 +387,7 @@ impl From<&PyFrame> for common::Frame {
             sugar_hills: py_frame
                 .sugar_hills
                 .iter()
-                .map(common::Pose::from)
+                .map(common::SugarHill::from)
                 .collect(),
         }
     }
@@ -154,10 +402,10 @@ impl From<common::Frame> for PyFrame {
             sugar_hills,
         } = frame;
         PyFrame {
-            ants: ants.into_iter().map(PyPose::from).collect(),
-            anthills: anthills.into_iter().map(PyPose::from).collect(),
+            ants: ants.into_iter().map(PyAnt::from).collect(),
+            anthills: anthills.into_iter().map(PyAntHill::from).collect(),
             raspberries: raspberries.into_iter().map(PyPose::from).collect(),
-            sugar_hills: sugar_hills.into_iter().map(PyPose::from).collect(),
+            sugar_hills: sugar_hills.into_iter().map(PySugarHill::from).collect(),
         }
     }
 }
@@ -175,12 +423,12 @@ impl PyFrame {
     }
 
     #[getter]
-    fn get_ants(&self) -> PyResult<Vec<PyPose>> {
+    fn get_ants(&self) -> PyResult<Vec<PyAnt>> {
         Ok(self.ants.clone())
     }
 
     #[getter]
-    fn get_anthills(&self) -> PyResult<Vec<PyPose>> {
+    fn get_anthills(&self) -> PyResult<Vec<PyAntHill>> {
         Ok(self.anthills.clone())
     }
 
@@ -190,17 +438,17 @@ impl PyFrame {
     }
 
     #[getter]
-    fn get_sugar_hills(&self) -> PyResult<Vec<PyPose>> {
+    fn get_sugar_hills(&self) -> PyResult<Vec<PySugarHill>> {
         Ok(self.sugar_hills.clone())
     }
 
-    fn add_ant(&mut self, pose: PyPose) -> PyResult<()> {
-        self.ants.push(pose);
+    fn add_ant(&mut self, ant: PyAnt) -> PyResult<()> {
+        self.ants.push(ant);
         Ok(())
     }
 
-    fn add_anthill(&mut self, pose: PyPose) -> PyResult<()> {
-        self.anthills.push(pose);
+    fn add_anthill(&mut self, hill: PyAntHill) -> PyResult<()> {
+        self.anthills.push(hill);
         Ok(())
     }
 
@@ -209,8 +457,8 @@ impl PyFrame {
         Ok(())
     }
 
-    fn add_sugar_hill(&mut self, pose: PyPose) -> PyResult<()> {
-        self.sugar_hills.push(pose);
+    fn add_sugar_hill(&mut self, hill: PySugarHill) -> PyResult<()> {
+        self.sugar_hills.push(hill);
         Ok(())
     }
 }
@@ -296,6 +544,9 @@ fn antbinding(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyPose>()?;
     m.add_class::<PyFrame>()?;
     m.add_class::<PyMap>()?;
+    m.add_class::<PyAnt>()?;
+    m.add_class::<PyAntHill>()?;
+    m.add_class::<PySugarHill>()?;
     m.add_class::<PyRecording>()?;
     Ok(())
 }

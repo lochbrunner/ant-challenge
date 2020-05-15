@@ -7,12 +7,32 @@ pub struct Pose {
     pub rotation: f32,
 }
 
+pub type Team = u8;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SugarHill {
+    pub pose: Pose,
+    pub volume: f32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AntHill {
+    pub pose: Pose,
+    pub team: Team,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Ant {
+    pub pose: Pose,
+    pub team: Team,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Frame {
-    pub ants: Vec<Pose>,
-    pub anthills: Vec<Pose>,
+    pub ants: Vec<Ant>,
+    pub anthills: Vec<AntHill>,
     pub raspberries: Vec<Pose>,
-    pub sugar_hills: Vec<Pose>,
+    pub sugar_hills: Vec<SugarHill>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
