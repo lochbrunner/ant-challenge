@@ -22,6 +22,7 @@ yew = { version = "0.15" }
 js-sys = "0.3"
 blender-armature = "=0.2.6"
 blender-mesh =  {path="/home/matthias/workspace/github/landon/blender-mesh"}
+common = { path = "../common" }
 
 # `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
 # compared to the default allocator's ~10K. It is slower than the default

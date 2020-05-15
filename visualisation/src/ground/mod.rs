@@ -19,7 +19,7 @@ pub struct Ground {
 }
 
 impl Ground {
-    pub fn new(gl: &GL) -> Ground {
+    pub fn new(gl: &GL, width: f32, height: f32) -> Ground {
         // Shader
         let vert_code = include_str!("./ground.vert");
         let frag_code = include_str!("./ground.frag");
@@ -27,8 +27,8 @@ impl Ground {
         let shader = gl_utils::create_shader(gl, vert_code, frag_code);
 
         // Using blenders z up
-        let x: f32 = 64.;
-        let y: f32 = 64.;
+        let x: f32 = width / 2.;
+        let y: f32 = height / 2.;
 
         let vertices: Vec<f32> = vec![x, y, 0., x, -y, 0., -x, y, 0., -x, -y, 0.];
 

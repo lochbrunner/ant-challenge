@@ -27,7 +27,7 @@ pub struct Ant {
     pub team: Team,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Frame {
     pub ants: Vec<Ant>,
     pub anthills: Vec<AntHill>,
@@ -35,13 +35,13 @@ pub struct Frame {
     pub sugar_hills: Vec<SugarHill>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Map {
     pub width: f32,
     pub height: f32,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Recording {
     pub map: Map,
     pub frames: Vec<Frame>,

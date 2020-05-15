@@ -3,27 +3,14 @@
 import argparse
 import random
 
-from antbinding import Recording, Frame, Pose
+from antbinding import Recording, Frame, Pose, AntHill, SugarHill
 
 
 class AntColony:
     def __init__(self, name, x, y):
         self.name = name
-        self.ant_hill = Pose(x, y)
+        self.ant_hill = AntHill(x, y)
         self.ants = []
-
-
-class SugarHill:
-    def __init__(self, pos):
-        x, y = pos
-        self.volume = 12
-        self.location = Pose(x, y)
-
-
-class Raspberry:
-    def __init__(self, pos):
-        x, y = pos
-        self.location = Pose(x, y)
 
 
 class World:
@@ -34,15 +21,15 @@ class World:
         '''
         Every spawned object is mirrored
         '''
-        INITIAL_RASPBERRIES_COUNT = 30
-        INITIAL_SUGAR_HILLS_COUNT = 10
+        INITIAL_RASPBERRIES_COUNT = 15
+        INITIAL_SUGAR_HILLS_COUNT = 5
 
         def mirror(pos, ctor):
             x, y = pos
-            return [ctor((x, y)), ctor((-x, -y))]
+            return [ctor(x=x, y=y), ctor(x=-x, y=-y)]
 
         # from -width <-> +width
-        self.world_size = {'width': 128, 'height': 128}
+        self.world_size = {'width': 64, 'height': 64}
         self.raspberries = []
         self.sugar_hills = []
 
@@ -52,7 +39,7 @@ class World:
         self.team_b = AntColony('team B', x=-ant_hill_x, y=-ant_hill_y)
         for _ in range(INITIAL_RASPBERRIES_COUNT):
             self.raspberries += [r for r in mirror(
-                self._find_free_space(self.RASPBERRY_RADIUS), Raspberry)]
+                self._find_free_space(self.RASPBERRY_RADIUS), Pose)]
 
         for _ in range(INITIAL_SUGAR_HILLS_COUNT):
             self.sugar_hills += [r for r in mirror(
@@ -89,21 +76,21 @@ class World:
                 return True
 
         for raspberry in self.raspberries:
-            d = min_square_dis(raspberry.location)
+            d = min_square_dis(raspberry)
             if d < (radius+self.RASPBERRY_RADIUS)**2:
                 return True
 
         for hill in self.sugar_hills:
-            d = min_square_dis(hill.location)
+            d = min_square_dis(hill.pose)
             if d < (radius+self.HILL_RADIUS)**2:
                 return True
         for hill in [self.team_a.ant_hill, self.team_b.ant_hill]:
-            d = min_square_dis(hill)
+            d = min_square_dis(hill.pose)
             if d < (radius+self.HILL_RADIUS)**2:
                 return True
 
         for ant in self.team_a.ants + self.team_b.ants:
-            d = min_square_dis(ant.location)
+            d = min_square_dis(ant.pose)
             if d < (radius+self.HILL_RADIUS)**2:
                 return True
 
@@ -140,12 +127,12 @@ class World:
 
         # Raspberries
         for raspberry in self.raspberries:
-            frame.add_raspberry(raspberry.location)
+            frame.add_raspberry(raspberry)
 
         # sugar hills
         for sugar_hill in self.sugar_hills:
             # Add volume
-            frame.add_sugar_hill(sugar_hill.location)
+            frame.add_sugar_hill(sugar_hill)
 
         return frame
 
