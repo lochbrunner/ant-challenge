@@ -4,7 +4,9 @@ Cargo.lock
 bin/
 pkg/
 dist/
+recordings/
 wasm-pack.log
 node_modules
 references
 netlife
+objectdb

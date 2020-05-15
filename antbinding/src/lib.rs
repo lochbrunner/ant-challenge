@@ -209,7 +209,7 @@ impl PyFrame {
         Ok(())
     }
 
-    fn add_sugar_hills(&mut self, pose: PyPose) -> PyResult<()> {
+    fn add_sugar_hill(&mut self, pose: PyPose) -> PyResult<()> {
         self.sugar_hills.push(pose);
         Ok(())
     }
