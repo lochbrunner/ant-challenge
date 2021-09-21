@@ -75,10 +75,10 @@ impl Ground {
         gl.bind_buffer(GL::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
         gl.buffer_data_with_array_buffer_view(GL::ELEMENT_ARRAY_BUFFER, &indices, GL::STATIC_DRAW);
 
-        let grass_texture = Texture::new(gl, "./gras-green.jpg").unwrap();
-        let mud_texture = Texture::new(gl, "./mud.png").unwrap();
-        let stone_texture = Texture::new(gl, "./stone.jpeg").unwrap();
-        let map_texture = Texture::new(gl, "./map.png").unwrap();
+        let grass_texture = Texture::new(gl, "./assets/gras-green.jpg").unwrap();
+        let mud_texture = Texture::new(gl, "./assets/mud.png").unwrap();
+        let stone_texture = Texture::new(gl, "./assets/stone.jpeg").unwrap();
+        let map_texture = Texture::new(gl, "./assets/map.png").unwrap();
 
         Ground {
             shader,

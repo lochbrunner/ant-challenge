@@ -133,7 +133,6 @@ pub struct Scene {
     camera: Camera,
     background: Option<Background>,
     mouse_action: MouseAction,
-    // fetch_service: FetchService,
     fetch_task: Option<Box<dyn Task>>,
 }
 
@@ -146,34 +145,34 @@ impl Scene {
             .body(Nothing)
             .unwrap();
 
-        // let task = self.fetch_service.fetch_binary(
-        //     request,
-        //     self.link.callback(move |response: Response<Binary>| {
-        //         let (meta, data) = response.into_parts();
-        //         if meta.status.is_success() {
-        //             if let Ok(data) = data {
-        //                 match common::Recording::load(&data[..]) {
-        //                     Ok(data) => Msg::FetchResponse(data),
-        //                     _ => Msg::FailedFetch(FetchError {
-        //                         reason: FetchErrorReason::Deserialize,
-        //                         uri,
-        //                     }),
-        //                 }
-        //             } else {
-        //                 Msg::FailedFetch(FetchError {
-        //                     reason: FetchErrorReason::NotOk,
-        //                     uri,
-        //                 })
-        //             }
-        //         } else {
-        //             Msg::FailedFetch(FetchError {
-        //                 reason: FetchErrorReason::NotSuccess,
-        //                 uri,
-        //             })
-        //         }
-        //     }),
-        // );
-        // self.fetch_task = Some(Box::new(task.unwrap()));
+        let task = FetchService::fetch_binary(
+            request,
+            self.link.callback(move |response: Response<Binary>| {
+                let (meta, data) = response.into_parts();
+                if meta.status.is_success() {
+                    if let Ok(data) = data {
+                        match common::Recording::load(&data[..]) {
+                            Ok(data) => Msg::FetchResponse(data),
+                            _ => Msg::FailedFetch(FetchError {
+                                reason: FetchErrorReason::Deserialize,
+                                uri,
+                            }),
+                        }
+                    } else {
+                        Msg::FailedFetch(FetchError {
+                            reason: FetchErrorReason::NotOk,
+                            uri,
+                        })
+                    }
+                } else {
+                    Msg::FailedFetch(FetchError {
+                        reason: FetchErrorReason::NotSuccess,
+                        uri,
+                    })
+                }
+            }),
+        );
+        self.fetch_task = Some(Box::new(task.unwrap()));
     }
 }
 
@@ -233,9 +232,9 @@ impl Component for Scene {
         self.background = Some(Background::new(&gl));
         self.gl = Some(gl);
 
-        // // In a more complex use-case, there will be additional WebGL initialization that should be
-        // // done here, such as enabling or disabling depth testing, depth functions, face
-        // // culling etc.
+        // In a more complex use-case, there will be additional WebGL initialization that should be
+        // done here, such as enabling or disabling depth testing, depth functions, face
+        // culling etc.
 
         if first_render {
             let gl = self.gl.as_ref().unwrap();
@@ -372,70 +371,70 @@ impl Scene {
         }
         gl.enable(GL::DEPTH_TEST);
 
-        // if let Some(recording) = &self.recording {
-        //     if let Some(ant) = &self.models.ant {
-        //         for inst in recording.frames[0].ants.iter() {
-        //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
-        //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.8f32);
-        //             ant.render(
-        //                 &gl,
-        //                 &self.camera,
-        //                 &Transformation {
-        //                     rotation,
-        //                     translation,
-        //                     scale: 0.5,
-        //                 },
-        //             );
-        //         }
-        //     }
-        //     if let Some(raspberry) = &self.models.raspberry {
-        //         for inst in recording.frames[0].raspberries.iter() {
-        //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.rotation);
-        //             let translation = Vector3::new(inst.x, inst.y, 0.8f32);
-        //             raspberry.render(
-        //                 &gl,
-        //                 &self.camera,
-        //                 &Transformation {
-        //                     rotation,
-        //                     translation,
-        //                     scale: 10.0,
-        //                 },
-        //             );
-        //         }
-        //     }
+        if let Some(recording) = &self.recording {
+            //     if let Some(ant) = &self.models.ant {
+            //         for inst in recording.frames[0].ants.iter() {
+            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
+            //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.8f32);
+            //             ant.render(
+            //                 &gl,
+            //                 &self.camera,
+            //                 &Transformation {
+            //                     rotation,
+            //                     translation,
+            //                     scale: 0.5,
+            //                 },
+            //             );
+            //         }
+            //     }
+            //     if let Some(raspberry) = &self.models.raspberry {
+            //         for inst in recording.frames[0].raspberries.iter() {
+            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.rotation);
+            //             let translation = Vector3::new(inst.x, inst.y, 0.8f32);
+            //             raspberry.render(
+            //                 &gl,
+            //                 &self.camera,
+            //                 &Transformation {
+            //                     rotation,
+            //                     translation,
+            //                     scale: 10.0,
+            //                 },
+            //             );
+            //         }
+            //     }
 
-        //     if let Some(anthill) = &self.models.anthill {
-        //         for inst in recording.frames[0].anthills.iter() {
-        //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
-        //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
-        //             anthill.render(
-        //                 &gl,
-        //                 &self.camera,
-        //                 &Transformation {
-        //                     rotation,
-        //                     translation,
-        //                     scale: 5.0,
-        //                 },
-        //             );
-        //         }
-        //     }
+            //     if let Some(anthill) = &self.models.anthill {
+            //         for inst in recording.frames[0].anthills.iter() {
+            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
+            //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
+            //             anthill.render(
+            //                 &gl,
+            //                 &self.camera,
+            //                 &Transformation {
+            //                     rotation,
+            //                     translation,
+            //                     scale: 5.0,
+            //                 },
+            //             );
+            //         }
+            //     }
 
-        //     if let Some(sugar_hill) = &self.models.sugar_hill {
-        //         for inst in recording.frames[0].sugar_hills.iter() {
-        //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
-        //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
-        //             sugar_hill.render(
-        //                 &gl,
-        //                 &self.camera,
-        //                 &Transformation {
-        //                     rotation,
-        //                     translation,
-        //                     scale: 10.0,
-        //                 },
-        //             );
-        //         }
-        //     }
-        // }
+            //     if let Some(sugar_hill) = &self.models.sugar_hill {
+            //         for inst in recording.frames[0].sugar_hills.iter() {
+            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
+            //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
+            //             sugar_hill.render(
+            //                 &gl,
+            //                 &self.camera,
+            //                 &Transformation {
+            //                     rotation,
+            //                     translation,
+            //                     scale: 10.0,
+            //                 },
+            //             );
+            //         }
+            //     }
+        }
         if let Some(ground) = &self.ground {
             ground.render(&gl, &self.camera);
         }
