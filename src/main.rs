@@ -4,6 +4,7 @@ mod background;
 mod camera;
 mod gl_utils;
 mod ground;
+mod mesh;
 mod scene;
 mod texture;
 

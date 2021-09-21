@@ -17,7 +17,7 @@ use crate::background::Background;
 use crate::camera::Camera;
 use crate::ground::Ground;
 
-// use crate::mesh::{SimpleMesh, Transformation};
+use crate::mesh::{SimpleMesh, Transformation};
 
 #[inline]
 fn log(text: &str) {
@@ -101,19 +101,19 @@ pub struct MouseAction {
 }
 
 pub struct Models {
-    // ant: Option<SimpleMesh>,
-// raspberry: Option<SimpleMesh>,
-// anthill: Option<SimpleMesh>,
-// sugar_hill: Option<SimpleMesh>,
+    ant: Option<SimpleMesh>,
+    raspberry: Option<SimpleMesh>,
+    anthill: Option<SimpleMesh>,
+    sugar_hill: Option<SimpleMesh>,
 }
 
 impl Models {
     pub fn empty() -> Self {
         Self {
-            // ant: None,
-            // raspberry: None,
-            // anthill: None,
-            // sugar_hill: None,
+            ant: None,
+            raspberry: None,
+            anthill: None,
+            sugar_hill: None,
         }
     }
 }
@@ -138,7 +138,7 @@ pub struct Scene {
 
 impl Scene {
     fn fetch_recording(&mut self) {
-        let uri = "first.bin";
+        let uri = "/recordings/first.bin";
         let request = Request::builder()
             .method("GET")
             .uri(uri)
@@ -172,7 +172,10 @@ impl Scene {
                 }
             }),
         );
-        self.fetch_task = Some(Box::new(task.unwrap()));
+        match task {
+            Ok(task) => self.fetch_task = Some(Box::new(task)),
+            Err(err) => log(&format!("Error fetching {} {}", uri, err)),
+        }
     }
 }
 
@@ -222,12 +225,28 @@ impl Component for Scene {
         gl.enable(GL::DEPTH_TEST);
 
         self.canvas = Some(canvas);
-        // self.fetch_recording();
+        self.fetch_recording();
 
-        // self.models.ant = Some(SimpleMesh::mesh(&gl, "Ant.Released", "./ant-texture.png"));
-        // self.models.raspberry = Some(SimpleMesh::mesh(&gl, "raspberry", "./raspberry_paint.png"));
-        // self.models.anthill = Some(SimpleMesh::mesh(&gl, "anthill", "./anthill_paint.png"));
-        // self.models.sugar_hill = Some(SimpleMesh::mesh(&gl, "sugar_hill", "./sugar_paint.png"));
+        self.models.ant = Some(SimpleMesh::mesh(
+            &gl,
+            "Ant.Released",
+            "./assets/ant-texture.png",
+        ));
+        self.models.raspberry = Some(SimpleMesh::mesh(
+            &gl,
+            "raspberry",
+            "./assets/raspberry_paint.png",
+        ));
+        self.models.anthill = Some(SimpleMesh::mesh(
+            &gl,
+            "anthill",
+            "./assets/anthill_paint.png",
+        ));
+        self.models.sugar_hill = Some(SimpleMesh::mesh(
+            &gl,
+            "sugar_hill",
+            "./assets/sugar_paint.png",
+        ));
         self.ground = Some(Ground::new(&gl, 128., 128.));
         self.background = Some(Background::new(&gl));
         self.gl = Some(gl);
@@ -367,73 +386,73 @@ impl Scene {
 
         gl.disable(GL::DEPTH_TEST);
         if let Some(background) = &self.background {
-            background.render(&gl, &self.camera, timestamp);
+            background.render(&gl, timestamp);
         }
         gl.enable(GL::DEPTH_TEST);
 
         if let Some(recording) = &self.recording {
-            //     if let Some(ant) = &self.models.ant {
-            //         for inst in recording.frames[0].ants.iter() {
-            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
-            //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.8f32);
-            //             ant.render(
-            //                 &gl,
-            //                 &self.camera,
-            //                 &Transformation {
-            //                     rotation,
-            //                     translation,
-            //                     scale: 0.5,
-            //                 },
-            //             );
-            //         }
-            //     }
-            //     if let Some(raspberry) = &self.models.raspberry {
-            //         for inst in recording.frames[0].raspberries.iter() {
-            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.rotation);
-            //             let translation = Vector3::new(inst.x, inst.y, 0.8f32);
-            //             raspberry.render(
-            //                 &gl,
-            //                 &self.camera,
-            //                 &Transformation {
-            //                     rotation,
-            //                     translation,
-            //                     scale: 10.0,
-            //                 },
-            //             );
-            //         }
-            //     }
+            if let Some(ant) = &self.models.ant {
+                for inst in recording.frames[0].ants.iter() {
+                    let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
+                    let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.8f32);
+                    ant.render(
+                        &gl,
+                        &self.camera,
+                        &Transformation {
+                            rotation,
+                            translation,
+                            scale: 0.5,
+                        },
+                    );
+                }
+            }
+            if let Some(raspberry) = &self.models.raspberry {
+                for inst in recording.frames[0].raspberries.iter() {
+                    let rotation = Vector3::new(0.0f32, 0.0f32, inst.rotation);
+                    let translation = Vector3::new(inst.x, inst.y, 0.8f32);
+                    raspberry.render(
+                        &gl,
+                        &self.camera,
+                        &Transformation {
+                            rotation,
+                            translation,
+                            scale: 10.0,
+                        },
+                    );
+                }
+            }
 
-            //     if let Some(anthill) = &self.models.anthill {
-            //         for inst in recording.frames[0].anthills.iter() {
-            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
-            //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
-            //             anthill.render(
-            //                 &gl,
-            //                 &self.camera,
-            //                 &Transformation {
-            //                     rotation,
-            //                     translation,
-            //                     scale: 5.0,
-            //                 },
-            //             );
-            //         }
-            //     }
+            if let Some(anthill) = &self.models.anthill {
+                for inst in recording.frames[0].anthills.iter() {
+                    let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
+                    let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
+                    anthill.render(
+                        &gl,
+                        &self.camera,
+                        &Transformation {
+                            rotation,
+                            translation,
+                            scale: 5.0,
+                        },
+                    );
+                }
+            }
 
-            //     if let Some(sugar_hill) = &self.models.sugar_hill {
-            //         for inst in recording.frames[0].sugar_hills.iter() {
-            //             let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
-            //             let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
-            //             sugar_hill.render(
-            //                 &gl,
-            //                 &self.camera,
-            //                 &Transformation {
-            //                     rotation,
-            //                     translation,
-            //                     scale: 10.0,
-            //                 },
-            //             );
-            //         }
-            //     }
+            if let Some(sugar_hill) = &self.models.sugar_hill {
+                for inst in recording.frames[0].sugar_hills.iter() {
+                    let rotation = Vector3::new(0.0f32, 0.0f32, inst.pose.rotation);
+                    let translation = Vector3::new(inst.pose.x, inst.pose.y, 0.);
+                    sugar_hill.render(
+                        &gl,
+                        &self.camera,
+                        &Transformation {
+                            rotation,
+                            translation,
+                            scale: 10.0,
+                        },
+                    );
+                }
+            }
         }
         if let Some(ground) = &self.ground {
             ground.render(&gl, &self.camera);

@@ -1,8 +1,6 @@
 use web_sys::WebGlRenderingContext as GL;
 use web_sys::{WebGlBuffer, WebGlProgram};
 
-use crate::camera::Camera;
-
 pub struct Background {
     shader: WebGlProgram,
     vertex_buffer: WebGlBuffer,
@@ -40,7 +38,7 @@ impl Background {
         }
     }
 
-    pub fn render(&self, gl: &GL, camera: &Camera, timestamp: f64) {
+    pub fn render(&self, gl: &GL, timestamp: f64) {
         gl.use_program(Some(&self.shader));
         gl.bind_buffer(GL::ARRAY_BUFFER, Some(&self.vertex_buffer));
         // Attach the position vector as an attribute for the GL context.
