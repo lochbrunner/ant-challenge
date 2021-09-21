@@ -1,7 +1,7 @@
 use log::*;
 use yew::prelude::*;
 
-// use crate::scene::Scene;
+use crate::scene::Scene;
 
 pub struct App {}
 
@@ -28,7 +28,7 @@ impl Component for App {
                 </header>
                 <section class="todoapp">
                     <section class="main">
-                        // <Scene/>
+                        <Scene/>
                     </section>
                 </section>
                 <footer>

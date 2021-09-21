@@ -1,5 +1,12 @@
 #![recursion_limit = "1024"]
 
+mod background;
+mod camera;
+mod gl_utils;
+mod ground;
+mod scene;
+mod texture;
+
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
