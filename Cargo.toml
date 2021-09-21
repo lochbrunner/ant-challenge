@@ -1,0 +1,22 @@
+[package]
+name = "visualization"
+version = "0.1.0"
+authors = ["Philip Peterson <pc.peterso@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+wee_alloc = "0.4"
+yew = "0.18.0"
+log = "0.4.14"
+
+[dependencies.web-sys]
+version = "0.3.55"
+features = ["WebGlRenderingContext",
+  "WebGlProgram",
+  "WebGlShader",
+  "WebGlBuffer",
+  "HtmlCanvasElement",
+  "WebGlTexture",
+  "HtmlImageElement",
+  "WebGlUniformLocation"
+]
