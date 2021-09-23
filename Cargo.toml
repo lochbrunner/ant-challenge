@@ -2,6 +2,7 @@
 
 members = [
     "common",
-    # "visualization",
-    "antbinding"
+    "visu",
+    "antbinding",
+    "engine"
 ]

@@ -1,31 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Pose {
-    pub x: f32,
-    pub y: f32,
-    pub rotation: f32,
-}
+pub mod math;
+pub mod objects;
 
-pub type Team = u8;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SugarHill {
-    pub pose: Pose,
-    pub volume: f32,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AntHill {
-    pub pose: Pose,
-    pub team: Team,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Ant {
-    pub pose: Pose,
-    pub team: Team,
-}
+pub use math::{Pose, Vector2};
+pub use objects::{Ant, AntHill, Map, SmellCloud, SugarHill, Team};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Frame {
@@ -33,12 +12,7 @@ pub struct Frame {
     pub anthills: Vec<AntHill>,
     pub raspberries: Vec<Pose>,
     pub sugar_hills: Vec<SugarHill>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Map {
-    pub width: f32,
-    pub height: f32,
+    pub smells_clouds: Vec<SmellCloud>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

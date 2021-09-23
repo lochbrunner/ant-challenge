@@ -9,98 +9,28 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::sync::Arc;
 
-#[pyclass(name = "Pose", subclass)]
-#[derive(Clone)]
-pub struct PyPose {
-    pub inner: Arc<common::Pose>,
-}
-
-#[pymethods]
-impl PyPose {
-    #[new]
-    fn py_new(x: Option<f32>, y: Option<f32>, rotation: Option<f32>) -> Self {
-        PyPose {
-            inner: Arc::new(common::Pose {
-                x: x.unwrap_or(0.),
-                y: y.unwrap_or(0.),
-                rotation: rotation.unwrap_or(0.),
-            }),
-        }
-    }
-
-    #[getter]
-    fn get_x(&self) -> PyResult<f32> {
-        Ok(self.inner.x)
-    }
-
-    #[getter]
-    fn get_y(&self) -> PyResult<f32> {
-        Ok(self.inner.y)
-    }
-
-    #[getter]
-    fn get_rotation(&self) -> PyResult<f32> {
-        Ok(self.inner.rotation)
-    }
-
-    #[setter]
-    fn set_x(&mut self, x: f32) -> PyResult<()> {
-        unsafe {
-            Arc::get_mut_unchecked(&mut self.inner).x = x;
-        }
-        Ok(())
-    }
-
-    #[setter]
-    fn set_y(&mut self, y: f32) -> PyResult<()> {
-        unsafe {
-            Arc::get_mut_unchecked(&mut self.inner).y = y;
-        }
-        Ok(())
-    }
-
-    #[setter]
-    fn set_rotation(&mut self, rotation: f32) -> PyResult<()> {
-        unsafe {
-            Arc::get_mut_unchecked(&mut self.inner).rotation = rotation;
-        }
-        Ok(())
-    }
-}
-
-#[pyproto]
-impl PyObjectProtocol for PyPose {
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(format!("{:?}", self.inner))
-    }
-}
-
-impl From<&PyPose> for common::Pose {
-    fn from(py_pose: &PyPose) -> Self {
-        let pose = py_pose.inner.as_ref();
-        common::Pose {
-            x: pose.x,
-            y: pose.y,
-            rotation: pose.rotation,
-        }
-    }
-}
-
-impl From<common::Pose> for PyPose {
-    fn from(pose: common::Pose) -> Self {
-        PyPose {
-            inner: Arc::new(pose),
-        }
-    }
-}
+mod math;
+mod world;
+use math::{PyPose, PyVector2};
 
 #[pyclass(name = "Map", subclass)]
+#[derive(Clone)]
 pub struct PyMap {
     pub inner: Arc<common::Map>,
 }
 
 #[pymethods]
 impl PyMap {
+    #[new]
+    fn py_new() -> Self {
+        Self {
+            inner: Arc::new(common::Map {
+                width: 32.,
+                height: 32.,
+            }),
+        }
+    }
+
     #[getter]
     fn get_width(&self) -> PyResult<f32> {
         Ok(self.inner.width)
@@ -141,6 +71,14 @@ impl PyObjectProtocol for PyMap {
     }
 }
 
+impl From<&common::Map> for PyMap {
+    fn from(map: &common::Map) -> Self {
+        PyMap {
+            inner: Arc::new(map.clone()),
+        }
+    }
+}
+
 #[pyclass(name = "SugarHill", subclass)]
 #[derive(Clone)]
 pub struct PySugarHill {
@@ -152,7 +90,7 @@ pub struct PySugarHill {
 impl PySugarHill {
     #[new]
     fn py_new(x: Option<f32>, y: Option<f32>, rotation: Option<f32>, volume: Option<f32>) -> Self {
-        PySugarHill {
+        Self {
             pose: PyPose::py_new(x, y, rotation),
             volume: volume.unwrap_or(12.),
         }
@@ -216,6 +154,8 @@ impl PyObjectProtocol for PySugarHill {
 pub struct PyAnt {
     pose: PyPose,
     team: u8,
+    hp: f32,
+    velocity: f32,
 }
 
 #[pymethods]
@@ -226,16 +166,30 @@ impl PyAnt {
         y: Option<f32>,
         rotation: Option<f32>,
         team: Option<common::Team>,
+        hp: Option<f32>,
+        velocity: Option<f32>,
     ) -> Self {
         PyAnt {
             pose: PyPose::py_new(x, y, rotation),
             team: team.unwrap_or(0),
+            hp: hp.unwrap_or(1.),
+            velocity: velocity.unwrap_or(0.),
         }
     }
 
     #[getter]
     fn get_team(&self) -> PyResult<common::Team> {
         Ok(self.team)
+    }
+
+    #[getter]
+    fn get_hp(&self) -> PyResult<f32> {
+        Ok(self.hp)
+    }
+
+    #[getter]
+    fn get_velocity(&self) -> PyResult<f32> {
+        Ok(self.velocity)
     }
 
     #[getter]
@@ -246,6 +200,18 @@ impl PyAnt {
     #[setter]
     fn set_team(&mut self, team: common::Team) -> PyResult<()> {
         self.team = team;
+        Ok(())
+    }
+
+    #[setter]
+    fn set_hp(&mut self, hp: f32) -> PyResult<()> {
+        self.hp = hp;
+        Ok(())
+    }
+
+    #[setter]
+    fn set_velocity(&mut self, velocity: f32) -> PyResult<()> {
+        self.velocity = velocity;
         Ok(())
     }
 
@@ -262,19 +228,28 @@ impl PyAnt {
 
 impl From<common::Ant> for PyAnt {
     fn from(hill: common::Ant) -> Self {
-        let common::Ant { pose, team } = hill;
+        let common::Ant {
+            pose,
+            team,
+            hp,
+            velocity,
+        } = hill;
         PyAnt {
             pose: PyPose::from(pose),
             team,
+            hp,
+            velocity,
         }
     }
 }
 
 impl From<&PyAnt> for common::Ant {
-    fn from(py_hill: &PyAnt) -> Self {
+    fn from(py_ant: &PyAnt) -> Self {
         common::Ant {
-            pose: common::Pose::from(&py_hill.pose),
-            team: py_hill.team,
+            pose: common::Pose::from(&py_ant.pose),
+            team: py_ant.team,
+            hp: py_ant.hp,
+            velocity: py_ant.velocity,
         }
     }
 }
@@ -361,6 +336,94 @@ impl PyObjectProtocol for PyAntHill {
     }
 }
 
+#[pyclass(name = "SmellCloud", subclass)]
+#[derive(Clone)]
+pub struct PySmellCloud {
+    position: PyVector2,
+    code: u32,
+    age: u32,
+    team: u8,
+}
+
+#[pymethods]
+impl PySmellCloud {
+    #[new]
+    fn py_new(
+        x: Option<f32>,
+        y: Option<f32>,
+        team: Option<common::Team>,
+        age: Option<u32>,
+        code: Option<u32>,
+    ) -> Self {
+        Self {
+            position: PyVector2::py_new(x, y),
+            team: team.unwrap_or(0),
+            age: age.unwrap_or(100),
+            code: code.unwrap_or(0),
+        }
+    }
+
+    #[getter]
+    fn get_team(&self) -> PyResult<common::Team> {
+        Ok(self.team)
+    }
+
+    #[getter]
+    fn get_position(&self) -> PyResult<PyVector2> {
+        Ok(self.position.clone())
+    }
+
+    #[setter]
+    fn set_team(&mut self, team: common::Team) -> PyResult<()> {
+        self.team = team;
+        Ok(())
+    }
+
+    #[setter]
+    fn set_position(&mut self, position: PyVector2) -> PyResult<()> {
+        unsafe {
+            Arc::get_mut_unchecked(&mut self.position.inner).x = position.inner.x;
+            Arc::get_mut_unchecked(&mut self.position.inner).y = position.inner.y;
+        }
+        Ok(())
+    }
+}
+
+impl From<common::SmellCloud> for PySmellCloud {
+    fn from(hill: common::SmellCloud) -> Self {
+        let common::SmellCloud {
+            position,
+            team,
+            age,
+            code,
+        } = hill;
+        Self {
+            position: PyVector2::from(position),
+            team,
+            age,
+            code,
+        }
+    }
+}
+
+impl From<&PySmellCloud> for common::SmellCloud {
+    fn from(py_cloud: &PySmellCloud) -> Self {
+        Self {
+            position: common::Vector2::from(&py_cloud.position),
+            team: py_cloud.team,
+            age: py_cloud.age,
+            code: py_cloud.code,
+        }
+    }
+}
+
+#[pyproto]
+impl PyObjectProtocol for PySmellCloud {
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(format!("{:?}", common::SmellCloud::from(self)))
+    }
+}
+
 #[pyclass(name = "Frame", subclass)]
 #[derive(Clone)]
 pub struct PyFrame {
@@ -368,6 +431,7 @@ pub struct PyFrame {
     anthills: Vec<PyAntHill>,
     raspberries: Vec<PyPose>,
     sugar_hills: Vec<PySugarHill>,
+    smells_clouds: Vec<PySmellCloud>,
 }
 
 impl From<&PyFrame> for common::Frame {
@@ -389,6 +453,11 @@ impl From<&PyFrame> for common::Frame {
                 .iter()
                 .map(common::SugarHill::from)
                 .collect(),
+            smells_clouds: py_frame
+                .smells_clouds
+                .iter()
+                .map(common::SmellCloud::from)
+                .collect(),
         }
     }
 }
@@ -400,12 +469,14 @@ impl From<common::Frame> for PyFrame {
             anthills,
             raspberries,
             sugar_hills,
+            smells_clouds,
         } = frame;
         PyFrame {
             ants: ants.into_iter().map(PyAnt::from).collect(),
             anthills: anthills.into_iter().map(PyAntHill::from).collect(),
             raspberries: raspberries.into_iter().map(PyPose::from).collect(),
             sugar_hills: sugar_hills.into_iter().map(PySugarHill::from).collect(),
+            smells_clouds: smells_clouds.into_iter().map(PySmellCloud::from).collect(),
         }
     }
 }
@@ -419,6 +490,7 @@ impl PyFrame {
             anthills: vec![],
             raspberries: vec![],
             sugar_hills: vec![],
+            smells_clouds: vec![],
         }
     }
 
@@ -486,10 +558,16 @@ impl PyRecording {
 
     // props
     #[getter]
-    fn map(&self) -> PyResult<PyMap> {
+    fn get_map(&self) -> PyResult<PyMap> {
         Ok(PyMap {
             inner: self.map.inner.clone(),
         })
+    }
+
+    #[setter]
+    fn set_map(&mut self, map: PyMap) -> PyResult<()> {
+        self.map = map;
+        Ok(())
     }
 
     #[getter]
@@ -544,11 +622,14 @@ impl PyRecording {
 #[pymodule]
 fn antbinding(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyPose>()?;
+    m.add_class::<PyVector2>()?;
     m.add_class::<PyFrame>()?;
     m.add_class::<PyMap>()?;
     m.add_class::<PyAnt>()?;
     m.add_class::<PyAntHill>()?;
     m.add_class::<PySugarHill>()?;
+    m.add_class::<PySmellCloud>()?;
     m.add_class::<PyRecording>()?;
+    m.add_class::<world::PyWorld>()?;
     Ok(())
 }

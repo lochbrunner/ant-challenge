@@ -138,7 +138,7 @@ pub struct Scene {
 
 impl Scene {
     fn fetch_recording(&mut self) {
-        let uri = "/recordings/first.bin";
+        let uri = "/recordings/second.bin";
         let request = Request::builder()
             .method("GET")
             .uri(uri)
